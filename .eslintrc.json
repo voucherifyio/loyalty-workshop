@@ -1,0 +1,17 @@
+{
+  "rules": {
+    "no-console": "off",
+    "no-magic-numbers": "off"
+  },
+  "overrides": [
+    {
+      "files": [
+        "*.mjs",
+        "tailwind.config.js"
+      ],
+      "parserOptions": {
+        "sourceType": "module"
+      }
+    }
+  ]
+}
