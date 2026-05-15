@@ -363,13 +363,12 @@ toast.error('Failed to create program');
 {/if}
 ```
 
-### Console Errors
+### Error Visibility
 
-**Rule**: Always log errors to console for debugging
+Errors from API calls are automatically captured by the **API Inspector** sidebar (every `api.get/post/put/delete` call is logged with full request and response). Do **not** add `console.error` or `console.log` — the inspector and toast notifications are sufficient.
 
 ```javascript
-catch (error) {
-  console.error('Error loading programs:', error);
+catch (err) {
   toast.error('Failed to load programs');
 }
 ```
@@ -443,7 +442,7 @@ npm run lint:fix
 **Key Rules**:
 - **Indentation**: 2 spaces — frontend convention
 - **Quotes**: Single quotes in JS — Svelte/frontend convention
-- **Console**: Allowed — needed for frontend debugging
+- **Console**: Disallowed — use toast notifications and the API Inspector instead
 - **Magic Numbers**: Disabled — too restrictive for CSS values and dimensions
 - Unix line endings, semicolons required, strict equality (`===`), curly braces required
 
