@@ -2,4 +2,12 @@
 node_modules/
 dist/
 .DS_Store
+
+# Environment files (if API credentials stored locally):
+.env
+.env.local
+.env.*.local
+
+# Editor directories:
 .vscode/
+.idea/

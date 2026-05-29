@@ -155,6 +155,6 @@ export const endpoints = {
   },
 
   examine: {
-    run: () => '/v2/loyalties/examine'
+    run: () => '/v2/loyalties/examine/earning-rules'
   }
 };
