@@ -8,6 +8,7 @@
     card = null,
     programId = '',
     memberId = '',
+    rewardId = null, // Optional: pre-select a specific reward
     onClose = () => {},
     onSuccess = () => {}
   } = $props();
@@ -21,7 +22,7 @@
   let error = $state(null);
 
   function reset() {
-    selectedRewardId = '';
+    selectedRewardId = rewardId || '';
     dryRun = false;
     result = null;
     error = null;
@@ -86,29 +87,54 @@
     if (open && programId) {
       reset();
       loadRewards();
+      // Pre-select reward if provided
+      if (rewardId) {
+        selectedRewardId = rewardId;
+      }
     }
   });
 
+  const isPreselected = $derived(rewardId != null);
   const selectedReward = $derived(rewards.find(r => r.reward_id === selectedRewardId) || null);
 </script>
 
 {#if open}
   <dialog class="modal modal-open">
-    <div class="modal-box max-w-lg">
-      <h3 class="font-bold text-lg mb-2">Purchase Reward</h3>
-      {#if card}
-        <p class="text-sm text-base-content/70 mb-4">
-          Card: <span class="font-mono">{card.code || card.id}</span>
-          <span class="ml-2 text-base-content/50">Balance: <strong>{card.balance?.points || 0} pts</strong></span>
-        </p>
-      {/if}
+    <div class="modal-box max-w-2xl">
+      <!-- Header with close button -->
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="font-bold text-lg">Purchase Reward</h3>
+          {#if card}
+            <p class="text-sm text-base-content/60 mt-1">
+              Card: <span class="font-mono text-xs">{card.code || card.id}</span>
+              {#if card.balance}
+                · Balance: <span class="font-bold">{card.balance.points} pts</span>
+              {/if}
+            </p>
+          {/if}
+        </div>
+        <button
+          class="btn btn-sm btn-circle btn-ghost"
+          onclick={handleClose}
+          disabled={submitting}
+          aria-label="Close modal"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
       {#if !result}
         <div class="space-y-4">
-          <!-- Reward Select -->
-          <div class="form-control">
+          <!-- Reward Selection Card -->
+          <div class="card bg-base-200 p-4">
             <label class="label" for="reward-select">
-              <span class="label-text">Select Reward</span>
+              <span class="label-text font-medium">Select Reward</span>
+              {#if isPreselected}
+                <span class="badge badge-info badge-sm">Pre-selected</span>
+              {/if}
             </label>
             {#if loadingRewards}
               <div class="flex items-center gap-2 p-2">
@@ -127,8 +153,9 @@
             {:else}
               <select
                 id="reward-select"
-                class="select select-bordered"
+                class="select select-bordered select-sm"
                 bind:value={selectedRewardId}
+                disabled={isPreselected}
               >
                 <option value="">-- Select a reward --</option>
                 {#each rewards as reward}
@@ -138,21 +165,37 @@
             {/if}
           </div>
 
-          <!-- Selected Reward Details -->
+          <!-- Reward Details Card -->
           {#if selectedReward}
-            <div class="bg-base-200 rounded p-3 text-xs space-y-1">
-              <div><strong>Reward ID:</strong> <span class="font-mono">{selectedReward.reward_id}</span></div>
-              {#if selectedReward.stock != null}
-                <div><strong>Stock:</strong> {selectedReward.stock} &nbsp;·&nbsp; <strong>Redeemed:</strong> {selectedReward.redeemed ?? 0}</div>
-              {/if}
-              {#if selectedReward.costs?.length}
-                <div><strong>Costs:</strong> <pre class="text-[10px] bg-base-300 p-1 rounded mt-1 overflow-x-auto">{JSON.stringify(selectedReward.costs, null, 2)}</pre></div>
-              {/if}
+            <div class="card bg-base-200 p-4">
+              <div class="space-y-2 text-xs">
+                <div><strong>Reward ID:</strong> <span class="font-mono">{selectedReward.reward_id}</span></div>
+                
+                {#if selectedReward.stock}
+                  <div>
+                    <strong>Stock:</strong>
+                    {#if selectedReward.stock.type === 'UNLIMITED'}
+                      <span class="badge badge-success badge-xs ml-1">Unlimited</span>
+                    {:else if selectedReward.stock.type === 'LIMITED'}
+                      <span class="badge badge-warning badge-xs ml-1">
+                        Limited: {selectedReward.stock.limited?.quantity ?? 0} available
+                      </span>
+                    {/if}
+                    {#if selectedReward.redeemed != null}
+                      <span class="ml-2 text-base-content/50">· Redeemed: {selectedReward.redeemed}</span>
+                    {/if}
+                  </div>
+                {/if}
+                
+                {#if selectedReward.costs?.length}
+                  <div><strong>Costs:</strong> <pre class="text-[10px] bg-base-300 p-1 rounded mt-1 overflow-x-auto">{JSON.stringify(selectedReward.costs, null, 2)}</pre></div>
+                {/if}
+              </div>
             </div>
           {/if}
 
-          <!-- Dry Run Toggle -->
-          <div class="form-control">
+          <!-- Dry Run Card -->
+          <div class="card bg-base-200 p-4">
             <label class="label cursor-pointer justify-start gap-3">
               <input
                 type="checkbox"

@@ -1,6 +1,6 @@
 <script>
   import StatusBadge from '../../StatusBadge.svelte';
-  import { getSignedPoints, getTxTypeColor, formatDateTime } from '../../../utils/transactionFormatting.js';
+  import { getSignedPoints, getTxTypeColor, getTierTxTypeColor, formatDateTime } from '../../../utils/transactionFormatting.js';
 
   let {
     items = [],
@@ -34,8 +34,8 @@
         </thead>
         <tbody>
           {#each items as tx}
-            {@const sourceColor = tx._source === 'Card' ? 'badge-info' : tx._source === 'Reward' ? 'badge-accent' : tx._source === 'Order' ? 'badge-warning' : 'badge-success'}
-            {@const pts = tx._source === 'Card' ? getSignedPoints(tx) : tx._source === 'Reward' ? -(tx.details?.points?.total || 0) : tx._source === 'Order' ? -(tx.details?.payment?.points_spent || 0) : null}
+            {@const sourceColor = tx._source === 'Card' ? 'badge-info' : tx._source === 'Reward' ? 'badge-accent' : tx._source === 'Order' ? 'badge-warning' : tx._source === 'Tier' ? 'badge-secondary' : 'badge-success'}
+            {@const pts = tx._source === 'Card' ? getSignedPoints(tx) : tx._source === 'Reward' ? -(tx.details?.points?.total || 0) : tx._source === 'Order' ? -(tx.details?.payment?.points_spent || 0) : tx._source === 'Tier' ? tx.details?.points : null}
             {@const canRefund = tx._source === 'Reward' && tx.status === 'APPROVED' && tx.type === 'PURCHASE'}
             {@const child = tx._childCardTx}
             {@const childPts = child ? getSignedPoints(child) : null}
@@ -45,6 +45,8 @@
               <td>
                 {#if tx._source === 'Card'}
                   <span class="badge badge-sm {getTxTypeColor(tx.type)}">{tx.type || '–'}</span>
+                {:else if tx._source === 'Tier'}
+                  <span class="badge badge-sm {getTierTxTypeColor(tx.type)}">{tx.type || '–'}</span>
                 {:else}
                   <span class="badge badge-sm badge-neutral font-mono text-[9px]">{tx.type || '–'}</span>
                 {/if}

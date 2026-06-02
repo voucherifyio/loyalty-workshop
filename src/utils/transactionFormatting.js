@@ -30,6 +30,21 @@ export function getTxTypeColor(type) {
 }
 
 /**
+ * Returns a DaisyUI badge class for tier transaction types.
+ * Always returns a `badge-*` class suitable for `<span class="badge {getTierTxTypeColor(type)}">`.
+ */
+export function getTierTxTypeColor(type) {
+  const colors = {
+    JOINED: 'badge-success',
+    UPGRADED: 'badge-success',
+    PROLONGED: 'badge-info',
+    DOWNGRADED: 'badge-warning',
+    LEFT: 'badge-error'
+  };
+  return colors[type] || 'badge-neutral';
+}
+
+/**
  * Returns a DaisyUI badge class for a transaction/reward status.
  * Always returns a `badge-*` class.
  */

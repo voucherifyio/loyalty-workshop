@@ -4,17 +4,18 @@
   import { api } from "../api/client.js";
   import { endpoints } from "../api/endpoints.js";
   import { toast } from "../services/toast.js";
+  import { formatNum } from "../utils/transactionFormatting.js";
   import CreateOrderModal from "../components/CreateOrderModal.svelte";
   import PayWithPointsModal from "../components/PayWithPointsModal.svelte";
   import PurchaseRewardModal from "../components/PurchaseRewardModal.svelte";
   import TriggerCustomEventModal from "../components/TriggerCustomEventModal.svelte";
-  import MemberActionToolbar from "../components/member/MemberActionToolbar.svelte";
-  import MemberCardSection from "../components/member/MemberCardSection.svelte";
   import CardReports from "../components/member/CardReports.svelte";
   import AdjustPointsDialog from "../components/member/dialogs/AdjustPointsDialog.svelte";
   import ExamineDialog from "../components/member/dialogs/ExamineDialog.svelte";
   import RefundDialog from "../components/member/dialogs/RefundDialog.svelte";
   import ActivitiesTab from "../components/member/tabs/ActivitiesTab.svelte";
+  import EarningsExaminationTab from "../components/member/tabs/EarningsExaminationTab.svelte";
+  import SpendingExaminationTab from "../components/member/tabs/SpendingExaminationTab.svelte";
   import OverviewTab from "../components/member/tabs/OverviewTab.svelte";
   import RawJsonTab from "../components/member/tabs/RawJsonTab.svelte";
   import TimelineTab from "../components/member/tabs/TimelineTab.svelte";
@@ -26,7 +27,7 @@
   let member = $state(null);
   let loadingMember = $state(false);
   let selectedCardIndex = $state(null);
-  let activeTab = $state("timeline");
+  let activeTab = $state("cards");
 
   // ── Per-card overview data ────────────────────────────────────────────────────
   let pendingBuckets = $state([]);
@@ -35,11 +36,16 @@
   let processingBucket = $state(null);
 
   // ── Transaction lists ─────────────────────────────────────────────────────────
-  let timelineActivities = $state([]);
   let memberActivities = $state([]);
   let cardActivities = $state([]);
+  let cardTransactions = $state([]);
+  let memberTransactions = $state([]);
   let loadingTx = $state(false);
+  let loadingCardTx = $state(false);
+  let loadingMemberTx = $state(false);
   let expandedRows = $state({});
+  let txSourceFilter = $state(new Set(["Card", "Reward", "Order"]));
+  let memberTxSourceFilter = $state(new Set(["Incentive", "Tier"]));
 
   // ── Modal / dialog visibility ─────────────────────────────────────────────────
   let adjustPointsOpen = $state(false);
@@ -62,6 +68,7 @@
   let refundPolicyStock = $state("DEFAULT");
   let processingRefund = $state(null);
   let refreshing = $state(false);
+  let actionCardIndex = $state(null);
 
   // ── Derived ───────────────────────────────────────────────────────────────────
   const isMemberMode = $derived(selectedCardIndex === null);
@@ -72,10 +79,21 @@
   );
   const selectedCard = $derived(selectedMemberCard?.card ?? null);
 
+  const filteredCardTransactions = $derived(
+    cardTransactions.filter((tx) => txSourceFilter.has(tx._source))
+  );
+
+  const filteredMemberTransactions = $derived(
+    memberTransactions.filter((tx) => memberTxSourceFilter.has(tx._source))
+  );
+
   const TABS = [
-    { id: "timeline", label: "Timeline" },
+    { id: "cards", label: "Cards" },
+    { id: "earning", label: "Earning Possibilities" },
+    { id: "spending", label: "Spending Possibilities" },
     { id: "activities", label: "Activities" },
-    { id: "rawJson", label: "Raw JSON" },
+    { id: "incentives", label: "Transactions" },
+    { id: "json", label: "JSON" },
   ];
 
   // ── Effects ───────────────────────────────────────────────────────────────────
@@ -91,6 +109,8 @@
       if (card?.card?.id) {
         expandedRows = {};
         fetchCardOverview(card.card.id);
+        fetchCardActivities(card.card.id);
+        fetchCardTransactions(card.card.id);
       }
     }
   });
@@ -98,8 +118,8 @@
   $effect(() => {
     if (!member) return;
 
-    if (activeTab === "timeline") fetchTimeline();
-    else if (activeTab === "activities") fetchMemberActivities();
+    if (activeTab === "activities") fetchMemberActivities();
+    else if (activeTab === "incentives") fetchMemberTransactions();
   });
 
   // ── Data fetching ─────────────────────────────────────────────────────────────
@@ -135,75 +155,6 @@
     }
   }
 
-  async function fetchTimeline() {
-    if (untrack(() => timelineActivities.length) > 0) return;
-    const cardId = untrack(() => selectedCard?.id);
-    loadingTx = true;
-    try {
-      const [cardRes, rewardRes, orderRes, incentiveRes] = await Promise.all([
-        cardId
-          ? api.get(
-              endpoints.members.cardTransactions(programId, memberId, cardId, {
-                limit: 50,
-              }),
-            )
-          : Promise.resolve({ data: [] }),
-        api.get(
-          endpoints.members.rewardPurchases(programId, memberId, { limit: 50 }),
-        ),
-        api.get(
-          endpoints.members.orderPayments(programId, memberId, { limit: 50 }),
-        ),
-        api.get(
-          endpoints.members.incentiveTransactions(programId, memberId, {
-            limit: 50,
-          }),
-        ),
-      ]);
-
-      const allCardTxs = (cardRes.data || []).map((t) => ({
-        ...t,
-        _source: "Card",
-      }));
-
-      const allRewards = rewardRes.data || [];
-      const allOrders = orderRes.data || [];
-      const rewardTxs = (
-        cardId ? allRewards.filter((r) => r.card_id === cardId) : allRewards
-      ).map((t) => ({ ...t, _source: "Reward" }));
-      const orderTxs = (
-        cardId ? allOrders.filter((o) => o.card_id === cardId) : allOrders
-      ).map((t) => ({ ...t, _source: "Order" }));
-      const incentiveTxs = (incentiveRes.data || []).map((t) => ({
-        ...t,
-        _source: "Incentive",
-      }));
-
-      const cardTxById = {};
-      for (const ct of allCardTxs) cardTxById[ct.id] = ct;
-      const consumedCardTxIds = new Set();
-      for (const tx of [...rewardTxs, ...orderTxs]) {
-        if (tx.card_transaction_id && cardTxById[tx.card_transaction_id]) {
-          tx._childCardTx = cardTxById[tx.card_transaction_id];
-          consumedCardTxIds.add(tx.card_transaction_id);
-        }
-      }
-
-      const all = [
-        ...allCardTxs.filter((ct) => !consumedCardTxIds.has(ct.id)),
-        ...rewardTxs,
-        ...orderTxs,
-        ...incentiveTxs,
-      ];
-      all.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      timelineActivities = all;
-    } catch {
-      toast.error('Failed to fetch timeline');
-    } finally {
-      loadingTx = false;
-    }
-  }
-
   async function fetchMemberActivities() {
     if (untrack(() => memberActivities.length) > 0) return;
     loadingTx = true;
@@ -219,9 +170,119 @@
     }
   }
 
+  async function fetchCardActivities(cardId) {
+    if (untrack(() => cardActivities.length) > 0) return;
+    loadingTx = true;
+    try {
+      const res = await api.get(
+        endpoints.members.cardActivities(programId, memberId, cardId),
+      );
+      cardActivities = res.data || [];
+    } catch {
+      toast.error('Failed to fetch card activities');
+    } finally {
+      loadingTx = false;
+    }
+  }
+
+  async function fetchCardTransactions(cardId) {
+    if (untrack(() => cardTransactions.length) > 0) return;
+    loadingCardTx = true;
+    try {
+      const [cardRes, rewardRes, orderRes] = await Promise.all([
+        api.get(
+          endpoints.members.cardTransactions(programId, memberId, cardId, {
+            limit: 50,
+          }),
+        ),
+        api.get(
+          endpoints.members.rewardPurchases(programId, memberId, { limit: 50 }),
+        ),
+        api.get(
+          endpoints.members.orderPayments(programId, memberId, { limit: 50 }),
+        ),
+      ]);
+
+      const allCardTxs = (cardRes.data || []).map((t) => ({
+        ...t,
+        _source: "Card",
+      }));
+
+      const allRewards = rewardRes.data || [];
+      const allOrders = orderRes.data || [];
+      const rewardTxs = allRewards
+        .filter((r) => r.card_id === cardId)
+        .map((t) => ({ ...t, _source: "Reward" }));
+      const orderTxs = allOrders
+        .filter((o) => o.card_id === cardId)
+        .map((t) => ({ ...t, _source: "Order" }));
+
+      // Link child card transactions to rewards/orders
+      const cardTxById = {};
+      for (const ct of allCardTxs) cardTxById[ct.id] = ct;
+      const consumedCardTxIds = new Set();
+      for (const tx of [...rewardTxs, ...orderTxs]) {
+        if (tx.card_transaction_id && cardTxById[tx.card_transaction_id]) {
+          tx._childCardTx = cardTxById[tx.card_transaction_id];
+          consumedCardTxIds.add(tx.card_transaction_id);
+        }
+      }
+
+      const all = [
+        ...allCardTxs.filter((ct) => !consumedCardTxIds.has(ct.id)),
+        ...rewardTxs,
+        ...orderTxs,
+      ];
+      all.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      cardTransactions = all;
+    } catch {
+      toast.error('Failed to fetch card transactions');
+    } finally {
+      loadingCardTx = false;
+    }
+  }
+
+  async function fetchMemberTransactions() {
+    if (untrack(() => memberTransactions.length) > 0) return;
+    loadingMemberTx = true;
+    try {
+      const [incentiveRes, tierRes] = await Promise.all([
+        api.get(
+          endpoints.members.incentiveTransactions(programId, memberId, {
+            limit: 50,
+          }),
+        ),
+        api.get(
+          endpoints.members.tierTransactions(programId, memberId, {
+            limit: 50,
+          }),
+        ),
+      ]);
+      
+      const incentiveTxs = (incentiveRes.data || []).map((t) => ({
+        ...t,
+        _source: "Incentive",
+      }));
+      const tierTxs = (tierRes.data || []).map((t) => ({
+        ...t,
+        _source: "Tier",
+      }));
+      
+      const all = [...incentiveTxs, ...tierTxs];
+      all.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      memberTransactions = all;
+    } catch {
+      toast.error('Failed to fetch member transactions');
+    } finally {
+      loadingMemberTx = false;
+    }
+  }
+
   function clearTransactionData() {
-    timelineActivities = [];
     memberActivities = [];
+    cardActivities = [];
+    cardTransactions = [];
+    memberTransactions = [];
     expandedRows = {};
   }
 
@@ -304,31 +365,6 @@
     }
   }
 
-  function openRefundDialog(rewardTxId) {
-    refundDialogTxId = rewardTxId;
-    refundPolicyRefund = "DEFAULT";
-    refundPolicyStock = "DEFAULT";
-    refundDialogOpen = true;
-  }
-
-  async function refundRewardPurchase() {
-    const txId = refundDialogTxId;
-    if (!txId) return;
-    processingRefund = txId;
-    try {
-      await api.post(endpoints.members.refundRewardPurchase(programId, txId), {
-        policies: { refund: refundPolicyRefund, stock: refundPolicyStock },
-      });
-      refundDialogOpen = false;
-      clearTransactionData();
-      await refreshAfterAction();
-    } catch {
-      toast.error('Failed to refund reward purchase');
-    } finally {
-      processingRefund = null;
-    }
-  }
-
   async function activatePending(bucketId) {
     const cardId = selectedCard?.id;
     if (!cardId) return;
@@ -390,21 +426,60 @@
     }
   }
 
+  function openRefundDialog(rewardTxId) {
+    refundDialogTxId = rewardTxId;
+    refundPolicyRefund = "DEFAULT";
+    refundPolicyStock = "DEFAULT";
+    refundDialogOpen = true;
+  }
+
+  async function refundRewardPurchase() {
+    const txId = refundDialogTxId;
+    if (!txId) return;
+    processingRefund = txId;
+    try {
+      await api.post(endpoints.members.refundRewardPurchase(programId, txId), {
+        policies: { refund: refundPolicyRefund, stock: refundPolicyStock },
+      });
+      refundDialogOpen = false;
+      clearTransactionData();
+      await refreshAfterAction();
+    } catch {
+      toast.error('Failed to refund reward purchase');
+    } finally {
+      processingRefund = null;
+    }
+  }
+
   function toggleRow(id) {
     expandedRows = { ...expandedRows, [id]: !expandedRows[id] };
+  }
+
+  function toggleTxSourceFilter(source) {
+    const newFilter = new Set(txSourceFilter);
+    if (newFilter.has(source)) {
+      newFilter.delete(source);
+    } else {
+      newFilter.add(source);
+    }
+    txSourceFilter = newFilter;
+  }
+
+  function toggleMemberTxSourceFilter(source) {
+    const newFilter = new Set(memberTxSourceFilter);
+    if (newFilter.has(source)) {
+      newFilter.delete(source);
+    } else {
+      newFilter.add(source);
+    }
+    memberTxSourceFilter = newFilter;
   }
 
   function handleSelectCard(i) {
     selectedCardIndex = i;
     clearTransactionData();
     expandedRows = {};
-  }
-
-  function handleAdjustPointsForCard(cardIndex) {
-    selectedCardIndex = cardIndex;
-    adjustPointsOpen = true;
-    adjustPointsValue = "";
-    adjustPointsReason = "";
+    txSourceFilter = new Set(["Card", "Reward", "Order"]);
   }
 
   function goBack() {
@@ -462,143 +537,82 @@
       </div>
     </div>
 
-    <!-- Cards Section -->
-    <div class="bg-base-200/50 rounded-xl p-5 space-y-4">
-      <div class="flex items-center justify-between">
-        <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">
-          Cards <span class="badge badge-xs badge-ghost ml-1 normal-case">{member.cards?.length ?? 0}</span>
-        </p>
-      </div>
-      <MemberCardSection
-        cards={member.cards ?? []}
-        {selectedCardIndex}
-        onSelectCard={handleSelectCard}
-        onAdjustPoints={handleAdjustPointsForCard}
-      />
-    </div>
-
-    <!-- Selected Card Details (when card selected) -->
-    {#if selectedCardIndex !== null && selectedCard}
+    <!-- Card Summaries (clickable pills) -->
+    {#if member.cards && member.cards.length > 0}
       <div class="bg-base-200/50 rounded-xl p-5">
-        <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest mb-4">
-          Card Details: {selectedCard.code || selectedCard.id}
+        <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest mb-3">
+          Cards <span class="badge badge-xs badge-ghost ml-1 normal-case">{member.cards.length}</span>
         </p>
-        <OverviewTab
-          isMemberMode={false}
-          {member}
-          {programId}
-          {memberId}
-          {selectedCard}
-          {selectedMemberCard}
-          {pendingBuckets}
-          {expiringBuckets}
-          {loadingCardDetail}
-          {processingBucket}
-          onAdjustPoints={() => {
-            adjustPointsOpen = true;
-            adjustPointsValue = "";
-            adjustPointsReason = "";
-          }}
-          onActivatePending={activatePending}
-          onCancelPending={cancelPending}
-          onExpirePoints={expirePoints}
-        />
-      </div>
-
-      <!-- Point Reports Section (only when card selected) -->
-      <div class="bg-base-200/50 rounded-xl p-5">
-        <CardReports {programId} {memberId} cardId={selectedCard.id} />
+        <div class="flex gap-3 overflow-x-auto pb-2">
+          {#each member.cards as mc, i}
+            {@const card = mc.card}
+            {@const tp = mc.tier_progress?.current}
+            <div class="bg-base-100 rounded-lg p-3 min-w-48 shrink-0 shadow-sm flex flex-col">
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <div class="min-w-0 flex-1">
+                  <p class="text-[10px] font-semibold uppercase tracking-wide text-base-content/50 mb-0.5">
+                    {card?.card_type || mc.member_role || 'Card'}
+                  </p>
+                  <p class="text-xs font-mono truncate font-medium">{card?.code || card?.id || '–'}</p>
+                </div>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <p class="text-2xl font-bold text-primary">{formatNum(card?.balance?.points ?? 0)}</p>
+                <p class="text-[10px] text-base-content/40">pts</p>
+              </div>
+              {#if tp}
+                {@const pct = Math.min(100, Math.round(((tp.points.current - tp.points.min) / Math.max(tp.points.max - tp.points.min, 1)) * 100))}
+                <div class="mt-2 pt-2 border-t border-base-300">
+                  <p class="text-[9px] text-base-content/50 mb-1">{tp.name}</p>
+                  <div class="h-1 rounded-full bg-base-300 overflow-hidden">
+                    <div class="h-full rounded-full bg-primary transition-all" style="width: {Math.max(pct, 2)}%"></div>
+                  </div>
+                </div>
+              {/if}
+              
+              <!-- Action Buttons -->
+              <div class="mt-auto pt-3 border-t border-base-300 flex gap-2" class:mt-3={!tp}>
+                <button 
+                  class="btn btn-xs btn-outline flex-1"
+                  onclick={() => {
+                    actionCardIndex = i;
+                    selectedCardIndex = i;
+                    adjustPointsOpen = true;
+                    adjustPointsValue = "";
+                    adjustPointsReason = "";
+                  }}
+                  title="Adjust card balance"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  Adjust
+                </button>
+                <button 
+                  class="btn btn-xs btn-primary flex-1"
+                  onclick={() => {
+                    actionCardIndex = i;
+                    selectedCardIndex = i;
+                    payWithPointsOpen = true;
+                  }}
+                  title="Pay for an order with points"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                  </svg>
+                  Pay
+                </button>
+              </div>
+            </div>
+          {/each}
+        </div>
       </div>
     {/if}
 
-    <!-- Quick Actions -->
+    <!-- Main Tabbed Section -->
     <div class="bg-base-200/50 rounded-xl overflow-hidden">
-      <MemberActionToolbar
-        onPurchaseReward={() => {
-          purchaseRewardOpen = true;
-        }}
-        onPayWithPoints={() => {
-          payWithPointsOpen = true;
-        }}
-        onCreateOrder={() => {
-          createOrderOpen = true;
-        }}
-        onTriggerEvent={() => {
-          triggerEventOpen = true;
-        }}
-        onExamineEarnings={() => {
-          examineOpen = true;
-          examineAmount = "";
-          examineResult = null;
-          examineError = null;
-          examineJsonExpanded = false;
-        }}
-      />
-    </div>
-
-    <!-- Earnings Examination Section -->
-    <div class="bg-base-200/50 rounded-xl p-5">
-      <div class="flex items-center justify-between mb-3">
-        <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">Earnings Examination</p>
-      </div>
-      <div class="text-center py-8">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto mb-3 text-base-content/40">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-        </svg>
-        <p class="text-sm text-base-content/60 mb-4">
-          See what actions this member can do to earn points
-        </p>
-        <button
-          class="btn btn-info btn-sm"
-          onclick={() => {
-            examineOpen = true;
-            examineAmount = "";
-            examineResult = null;
-            examineError = null;
-            examineJsonExpanded = false;
-          }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-          </svg>
-          Examine Earnings
-        </button>
-      </div>
-    </div>
-
-    <!-- Rewards Examination Section -->
-    <div class="bg-base-200/50 rounded-xl p-5">
-      <div class="flex items-center justify-between mb-3">
-        <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">Rewards Examination</p>
-      </div>
-      <div class="text-center py-8">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto mb-3 text-base-content/40">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-        </svg>
-        <p class="text-sm text-base-content/60 mb-4">
-          See what rewards this member can spend points on
-        </p>
-        <button
-          class="btn btn-primary btn-sm"
-          onclick={() => {
-            purchaseRewardOpen = true;
-          }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-          </svg>
-          Examine Rewards
-        </button>
-      </div>
-    </div>
-
-    <!-- Timeline & Activities Section -->
-    <div class="bg-base-200/50 rounded-xl p-5">
-      <div class="flex items-center justify-between mb-3">
-        <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">Activity & History</p>
-      </div>
-
-      <div class="tabs tabs-bordered border-b border-base-300 shrink-0 flex-wrap gap-y-1">
+      <!-- Tab Navigation -->
+      <div class="tabs tabs-bordered border-b border-base-300 px-4 shrink-0 flex-wrap gap-y-1">
         {#each TABS as tab}
           <button
             class="tab tab-sm {activeTab === tab.id ? 'tab-active' : ''}"
@@ -609,16 +623,133 @@
         {/each}
       </div>
 
-      <div class="py-5">
-        {#if activeTab === "timeline"}
-          <TimelineTab
-            items={timelineActivities}
-            loading={loadingTx}
-            {expandedRows}
-            {processingRefund}
-            onToggleRow={toggleRow}
-            onOpenRefund={openRefundDialog}
-          />
+      <!-- Tab Content -->
+      <div class="p-5">
+        {#if activeTab === "cards"}
+          {#if member.cards && member.cards.length > 0}
+            <!-- Card Selector -->
+            <div class="mb-6">
+              <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest mb-3">
+                Select Card
+              </p>
+              <div class="flex gap-2 flex-wrap">
+                {#each member.cards as mc, i}
+                  {@const card = mc.card}
+                  {@const isSelected = i === selectedCardIndex}
+                  <button
+                    class="btn btn-sm {isSelected ? 'btn-primary' : 'btn-outline'}"
+                    onclick={() => handleSelectCard(i)}
+                  >
+                    {card?.code || card?.id || `Card ${i + 1}`}
+                  </button>
+                {/each}
+              </div>
+            </div>
+
+            {#if selectedCardIndex !== null && selectedCard}
+              <div class="space-y-6">
+                <!-- Card Details -->
+                <div>
+                  <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest mb-4">
+                    Card Details: {selectedCard.code || selectedCard.id}
+                  </p>
+                  <OverviewTab
+                  isMemberMode={false}
+                  {member}
+                  {programId}
+                  {memberId}
+                  {selectedCard}
+                  {selectedMemberCard}
+                  {pendingBuckets}
+                  {expiringBuckets}
+                  {loadingCardDetail}
+                  {processingBucket}
+                  {expandedRows}
+                  onActivatePending={activatePending}
+                  onCancelPending={cancelPending}
+                  onExpirePoints={expirePoints}
+                  onToggleRow={toggleRow}
+                />
+              </div>
+
+              <!-- Point Reports -->
+              <div>
+                <CardReports {programId} {memberId} cardId={selectedCard.id} />
+              </div>
+
+              <!-- Card Activities -->
+              <div>
+                <ActivitiesTab
+                  isMemberMode={false}
+                  memberActivities={[]}
+                  {cardActivities}
+                  loading={loadingTx}
+                  {expandedRows}
+                  onToggleRow={toggleRow}
+                  {getActivityTypeColor}
+                />
+              </div>
+
+              <!-- Card Transactions -->
+              <div>
+                <div class="mb-4">
+                  <div class="flex items-center justify-between mb-3">
+                    <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">
+                      Filter Transactions
+                    </p>
+                  </div>
+                  <div class="flex gap-2 flex-wrap">
+                    <button
+                      class="btn btn-sm {txSourceFilter.has('Card') ? 'btn-info' : 'btn-outline'}"
+                      onclick={() => toggleTxSourceFilter('Card')}
+                    >
+                      <span class="badge badge-xs badge-info mr-1"></span>
+                      Card
+                    </button>
+                    <button
+                      class="btn btn-sm {txSourceFilter.has('Reward') ? 'btn-accent' : 'btn-outline'}"
+                      onclick={() => toggleTxSourceFilter('Reward')}
+                    >
+                      <span class="badge badge-xs badge-accent mr-1"></span>
+                      Reward
+                    </button>
+                    <button
+                      class="btn btn-sm {txSourceFilter.has('Order') ? 'btn-warning' : 'btn-outline'}"
+                      onclick={() => toggleTxSourceFilter('Order')}
+                    >
+                      <span class="badge badge-xs badge-warning mr-1"></span>
+                      Order
+                    </button>
+                  </div>
+                </div>
+                <TimelineTab
+                  items={filteredCardTransactions}
+                  loading={loadingCardTx}
+                  {expandedRows}
+                  {processingRefund}
+                  onToggleRow={toggleRow}
+                  onOpenRefund={openRefundDialog}
+                />
+              </div>
+            </div>
+            {:else}
+              <div class="text-center py-12">
+                <p class="text-base-content/60">No card selected</p>
+                <p class="text-sm text-base-content/40 mt-2">Select a card above to view details</p>
+              </div>
+            {/if}
+          {:else}
+            <div class="text-center py-12">
+              <p class="text-base-content/60">No cards available</p>
+              <p class="text-sm text-base-content/40 mt-2">This member has no cards assigned</p>
+            </div>
+          {/if}
+        {:else if activeTab === "earning"}
+          <!-- Earning Possibilities Tab -->
+          <EarningsExaminationTab {programId} {memberId} {member} />
+        {:else if activeTab === "spending"}
+          <!-- Spending Possibilities Tab -->
+          <SpendingExaminationTab {programId} {memberId} {member} />
         {:else if activeTab === "activities"}
           <ActivitiesTab
             isMemberMode={true}
@@ -629,7 +760,39 @@
             onToggleRow={toggleRow}
             {getActivityTypeColor}
           />
-        {:else if activeTab === "rawJson"}
+        {:else if activeTab === "incentives"}
+          <div class="mb-4">
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">
+                Filter Transactions
+              </p>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <button
+                class="btn btn-sm {memberTxSourceFilter.has('Incentive') ? 'btn-success' : 'btn-outline'}"
+                onclick={() => toggleMemberTxSourceFilter('Incentive')}
+              >
+                <span class="badge badge-xs badge-success mr-1"></span>
+                Incentive
+              </button>
+              <button
+                class="btn btn-sm {memberTxSourceFilter.has('Tier') ? 'btn-secondary' : 'btn-outline'}"
+                onclick={() => toggleMemberTxSourceFilter('Tier')}
+              >
+                <span class="badge badge-xs badge-secondary mr-1"></span>
+                Tier
+              </button>
+            </div>
+          </div>
+          <TimelineTab
+            items={filteredMemberTransactions}
+            loading={loadingMemberTx}
+            {expandedRows}
+            processingRefund={null}
+            onToggleRow={toggleRow}
+            onOpenRefund={() => {}}
+          />
+        {:else if activeTab === "json"}
           <RawJsonTab {member} />
         {/if}
       </div>
@@ -670,6 +833,7 @@
 <PayWithPointsModal
   open={payWithPointsOpen}
   card={selectedCard}
+  {member}
   {programId}
   {memberId}
   onClose={() => {

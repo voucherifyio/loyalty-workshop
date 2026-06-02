@@ -138,6 +138,10 @@ export const endpoints = {
     incentiveTransactions: (programId, memberId, query = {}) =>
       withQuery(`/v2/loyalties/programs/${programId}/members/${memberId}/incentives/transactions`, query),
 
+    // Tier transactions
+    tierTransactions: (programId, memberId, query = {}) =>
+      withQuery(`/v2/loyalties/programs/${programId}/members/${memberId}/tiers/transactions`, query),
+
     // Daily card reports
     dailyReports: (programId, memberId, cardId, query = {}) =>
       withQuery(`/v2/loyalties/programs/${programId}/members/${memberId}/cards/${cardId}/reports/daily`, query)
@@ -153,7 +157,13 @@ export const endpoints = {
     create: () => '/v1/events'
   },
 
+  // Customers (v1 API)
+  customers: {
+    update: (customerId) => `/v1/customers/${customerId}`
+  },
+
   examine: {
-    run: () => '/v2/loyalties/examine/earning-rules'
+    run: () => '/v2/loyalties/examine/earning-rules',
+    rewards: () => '/v2/loyalties/examine/rewards'
   }
 };

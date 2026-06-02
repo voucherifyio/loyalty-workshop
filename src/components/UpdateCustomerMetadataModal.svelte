@@ -6,19 +6,29 @@
   let {
     open = false,
     customerId = "",
+    currentMetadata = {},
     onClose = () => {},
     onSuccess = () => {},
   } = $props();
 
   let submitting = $state(false);
-  let eventType = $state("");
-  let metadataEntries = $state([{ key: '', value: '' }]);
-  let error = $state(null);
+  let metadataEntries = $state([]);
+
+  // Initialize metadata entries from currentMetadata when modal opens
+  $effect(() => {
+    if (open && currentMetadata && Object.keys(currentMetadata).length > 0) {
+      metadataEntries = Object.entries(currentMetadata).map(([key, value]) => ({
+        key,
+        value: String(value)
+      }));
+    } else if (open && metadataEntries.length === 0) {
+      // Start with one empty entry if no current metadata
+      metadataEntries = [{ key: '', value: '' }];
+    }
+  });
 
   function resetForm() {
-    eventType = "";
     metadataEntries = [{ key: '', value: '' }];
-    error = null;
   }
 
   function addMetadataEntry() {
@@ -32,42 +42,32 @@
     }
   }
 
-  function isValid() {
-    return eventType.trim().length > 0;
-  }
-
   async function handleSubmit() {
-    if (!isValid()) {
-      toast.error("Please enter an event type");
+    // Build metadata object from entries
+    const metadata = {};
+    metadataEntries.forEach(entry => {
+      if (entry.key.trim()) {
+        metadata[entry.key] = entry.value;
+      }
+    });
+
+    if (Object.keys(metadata).length === 0) {
+      toast.error("Please add at least one metadata entry");
       return;
     }
 
     submitting = true;
-    error = null;
-
     try {
-      // Build metadata object from entries
-      const metadata = {};
-      metadataEntries.forEach(entry => {
-        if (entry.key.trim()) {
-          metadata[entry.key] = entry.value;
-        }
-      });
-
-      const payload = {
-        customer: customerId,
-        type: eventType.trim(),
-        metadata,
-      };
-
-      await api.post(endpoints.events.create(), payload);
-      toast.success("Custom event triggered successfully");
+      const payload = { metadata };
+      
+      await api.put(endpoints.customers.update(customerId), payload);
+      toast.success("Customer metadata updated successfully");
       resetForm();
       onSuccess();
       onClose();
-    } catch (err) {
-      error = err.message || "Failed to trigger event";
-      toast.error(error);
+    } catch (error) {
+      console.error('Failed to update customer metadata:', error);
+      toast.error("Failed to update customer metadata");
     } finally {
       submitting = false;
     }
@@ -77,12 +77,6 @@
     resetForm();
     onClose();
   }
-
-  $effect(() => {
-    if (open) {
-      resetForm();
-    }
-  });
 </script>
 
 {#if open}
@@ -90,7 +84,7 @@
     <div class="modal-box max-w-2xl">
       <div class="flex items-center justify-between mb-4">
         <div>
-          <h3 class="font-bold text-lg">Trigger Custom Event</h3>
+          <h3 class="font-bold text-lg">Update Customer Metadata</h3>
           <p class="text-sm text-base-content/60 mt-1">
             Customer: <span class="font-mono text-xs">{customerId}</span>
           </p>
@@ -118,20 +112,12 @@
         </button>
       </div>
 
-      <div class="space-y-4">
-        <!-- Event Configuration -->
-        <div class="card bg-base-200 p-4">
-          <div class="grid grid-cols-[120px_1fr] gap-x-4 gap-y-4 items-start">
-            <span class="text-sm text-base-content/70 pt-3">Event Type</span>
-            <input
-              type="text"
-              class="input input-bordered font-mono w-full"
-              bind:value={eventType}
-              placeholder="e.g., customer.custom_event_name"
-              disabled={submitting}
-            />
-
-            <span class="text-sm text-base-content/70 pt-2">Event Metadata</span>
+      <div class="card bg-base-200 p-4">
+        <div class="space-y-4">
+          <div>
+            <label class="label">
+              <span class="label-text font-medium">Customer Metadata</span>
+            </label>
             <div class="space-y-2">
               {#each metadataEntries as entry, i}
                 <div class="flex gap-2 items-center">
@@ -195,42 +181,29 @@
               </button>
             </div>
           </div>
-        </div>
 
-        <div class="alert alert-info">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            class="stroke-current shrink-0 w-5 h-5"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <div class="text-sm">
-            <div class="font-semibold mb-1">Earning Rules Trigger</div>
-            <div>
-              Triggers custom event to activate earning rules configured for
-              this event type
-            </div>
-          </div>
-        </div>
-
-        {#if error}
-          <div class="alert alert-error">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 shrink-0">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          <div class="alert alert-info">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              class="stroke-current shrink-0 w-5 h-5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
-            <div class="flex-1">
-              <div class="font-bold text-sm">Error</div>
-              <pre class="text-xs mt-1">{error}</pre>
+            <div class="text-sm">
+              <div class="font-semibold mb-1">Customer Metadata Update</div>
+              <div>
+                Updates the customer's metadata. This will affect earning rule conditions and segmentation that rely on customer metadata.
+              </div>
             </div>
           </div>
-        {/if}
+        </div>
       </div>
 
       <div class="modal-action">
@@ -244,12 +217,12 @@
         <button
           class="btn btn-primary"
           onclick={handleSubmit}
-          disabled={submitting || !isValid()}
+          disabled={submitting}
         >
           {#if submitting}
             <span class="loading loading-spinner loading-sm"></span>
           {:else}
-            Trigger Event
+            Update Metadata
           {/if}
         </button>
       </div>

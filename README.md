@@ -4,6 +4,9 @@ Developer tool for the [Voucherify Loyalty V2 API](https://docs.voucherify.io). 
 
 **Stack:** Svelte 5 · Vite 7 · Tailwind CSS 4 · DaisyUI 5 · CodeMirror 6
 
+> **⚠️ Important Notice**  
+> This app is **vibe coded** to showcase most of the Voucherify Loyalty V2 API capabilities. It is designed as a developer tool and demonstration, and is **not recommended for production use**. For production implementations, please use the official [Voucherify Dashboard](https://docs.voucherify.io) or follow Voucherify's production-ready integration guidelines.
+
 ## Documentation
 
 - **[Development](DEVELOPMENT.md)** — Setup, workflow, troubleshooting

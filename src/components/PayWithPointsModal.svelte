@@ -2,19 +2,22 @@
   import { api } from '../api/client.js';
   import { endpoints } from '../api/endpoints.js';
   import { toast } from '../services/toast.js';
+  import OrderSelectionModal from './OrderSelectionModal.svelte';
 
   let {
     open = false,
     card = null,
+    member = null,
     programId = '',
     memberId = '',
     onClose = () => {},
     onSuccess = () => {}
   } = $props();
 
-  // Order reference
-  let orderRefType = $state('id'); // 'id' | 'source_id'
-  let orderRefValue = $state('');
+  // Order selection state
+  let orderSelectionOpen = $state(false);
+  let selectedOrderRef = $state(null);
+  let createdOrderId = $state(null);
 
   // Payment limit
   let paymentLimitType = $state('CARD_BALANCE'); // 'CARD_BALANCE' | 'POINTS_LIMIT' | 'AMOUNT_LIMIT'
@@ -27,8 +30,8 @@
   let error = $state(null);
 
   function reset() {
-    orderRefType = 'id';
-    orderRefValue = '';
+    selectedOrderRef = null;
+    createdOrderId = null;
     paymentLimitType = 'CARD_BALANCE';
     pointsLimitMax = '';
     amountLimitMax = '';
@@ -40,6 +43,20 @@
   function handleClose() {
     reset();
     onClose();
+  }
+
+  function handleOrderSelected(orderRef, orderId) {
+    selectedOrderRef = orderRef;
+    createdOrderId = orderId;
+  }
+
+  function openOrderSelection() {
+    orderSelectionOpen = true;
+  }
+
+  function clearOrderSelection() {
+    selectedOrderRef = null;
+    createdOrderId = null;
   }
 
   function buildPaymentLimit() {
@@ -60,7 +77,7 @@
   }
 
   function isValid() {
-    if (!orderRefValue.trim()) return false;
+    if (!selectedOrderRef) return false;
     if (paymentLimitType === 'POINTS_LIMIT') {
       const v = parseInt(pointsLimitMax);
       if (isNaN(v) || v <= 0) return false;
@@ -72,6 +89,20 @@
     return true;
   }
 
+  function getOrderDisplayText() {
+    if (!selectedOrderRef) return null;
+    if (createdOrderId) {
+      return `Created Order: ${createdOrderId}`;
+    }
+    if (selectedOrderRef.id) {
+      return `Order ID: ${selectedOrderRef.id}`;
+    }
+    if (selectedOrderRef.source_id) {
+      return `Source ID: ${selectedOrderRef.source_id}`;
+    }
+    return 'Order selected';
+  }
+
   async function handleSubmit() {
     if (!isValid() || !card) return;
 
@@ -79,26 +110,27 @@
     result = null;
     error = null;
 
-    const body = {
-      card_id: card.id,
-      order: { [orderRefType]: orderRefValue.trim() }
-    };
-
-    const paymentLimit = buildPaymentLimit();
-    if (paymentLimit && paymentLimit.type !== 'CARD_BALANCE') {
-      body.payment_limit = paymentLimit;
-    }
-
-    if (dryRun) {
-      body.mode = 'DRY_RUN';
-    }
-
     try {
+      const body = {
+        card_id: card.id,
+        order: selectedOrderRef
+      };
+
+      const paymentLimit = buildPaymentLimit();
+      if (paymentLimit && paymentLimit.type !== 'CARD_BALANCE') {
+        body.payment_limit = paymentLimit;
+      }
+
+      if (dryRun) {
+        body.mode = 'DRY_RUN';
+      }
+
       const response = await api.post(
         endpoints.members.createOrderPayment(programId, memberId),
         body
       );
       result = response;
+      
       if (dryRun) {
         toast.success('Dry run simulation complete');
       } else {
@@ -122,91 +154,118 @@
 
 {#if open}
   <dialog class="modal modal-open">
-    <div class="modal-box max-w-lg">
-      <h3 class="font-bold text-lg mb-2">Pay With Points</h3>
-      {#if card}
-        <p class="text-sm text-base-content/70 mb-4">
-          Card: <span class="font-mono">{card.code || card.id}</span>
-          <span class="ml-2 text-base-content/50">Balance: <strong>{card.balance?.points || 0} pts</strong></span>
-        </p>
-      {/if}
+    <div class="modal-box max-w-2xl">
+      <!-- Header with close button -->
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="font-bold text-lg">Pay With Points</h3>
+          {#if card}
+            <p class="text-sm text-base-content/60 mt-1">
+              Card: <span class="font-mono text-xs">{card.code || card.id}</span>
+              · Balance: <span class="font-bold">{card.balance?.points || 0} pts</span>
+            </p>
+          {/if}
+        </div>
+        <button
+          class="btn btn-sm btn-circle btn-ghost"
+          onclick={handleClose}
+          disabled={submitting}
+          aria-label="Close modal"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
       {#if !result}
         <div class="space-y-4">
-          <!-- Order Reference -->
-          <div class="form-control">
-            <label class="label" for="order-ref-type">
-              <span class="label-text">Order Reference</span>
+          <!-- Order Selection Card -->
+          <div class="card bg-base-200 p-4">
+            <label class="label">
+              <span class="label-text font-medium">Order</span>
             </label>
-            <div class="join">
-              <select
-                id="order-ref-type"
-                class="select select-bordered join-item"
-                bind:value={orderRefType}
-              >
-                <option value="id">Order ID</option>
-                <option value="source_id">Source ID</option>
-              </select>
-              <input
-                type="text"
-                class="input input-bordered join-item flex-1"
-                bind:value={orderRefValue}
-                placeholder={orderRefType === 'id' ? 'ord_...' : 'my_order_001'}
-              />
+            {#if selectedOrderRef}
+              <div class="flex gap-2">
+                <div class="flex-1 bg-base-300 rounded-lg p-3">
+                  <p class="text-xs font-semibold text-base-content/70">
+                    {getOrderDisplayText()}
+                  </p>
+                  {#if createdOrderId}
+                    <p class="text-[10px] text-success mt-1">New order created</p>
+                  {/if}
+                </div>
+                <button
+                  class="btn btn-sm btn-square btn-ghost"
+                  onclick={clearOrderSelection}
+                  title="Clear selection"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            {:else}
+              <button class="btn btn-outline btn-block" onclick={openOrderSelection}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Select or Create Order
+              </button>
+            {/if}
+          </div>
+
+          <!-- Payment Limit Card -->
+          <div class="card bg-base-200 p-4">
+            <div class="space-y-3">
+              <div class="grid grid-cols-[120px_1fr] gap-x-4 gap-y-3 items-center">
+                <span class="text-sm text-base-content/70">Payment Limit</span>
+                <select
+                  id="payment-limit-type"
+                  class="select select-bordered select-sm"
+                  bind:value={paymentLimitType}
+                >
+                  <option value="CARD_BALANCE">Card Balance</option>
+                  <option value="POINTS_LIMIT">Points Limit</option>
+                  <option value="AMOUNT_LIMIT">Amount Limit</option>
+                </select>
+              </div>
+
+              {#if paymentLimitType === 'POINTS_LIMIT'}
+                <div class="grid grid-cols-[120px_1fr] gap-x-4 gap-y-3 items-center">
+                  <span class="text-sm text-base-content/70">Max Points</span>
+                  <input
+                    id="points-limit-max"
+                    type="number"
+                    class="input input-bordered input-sm"
+                    bind:value={pointsLimitMax}
+                    placeholder="e.g., 200"
+                    min="1"
+                  />
+                </div>
+              {/if}
+
+              {#if paymentLimitType === 'AMOUNT_LIMIT'}
+                <div class="grid grid-cols-[120px_1fr] gap-x-4 gap-y-3 items-center">
+                  <span class="text-sm text-base-content/70">Max Amount</span>
+                  <div class="space-y-1">
+                    <input
+                      id="amount-limit-max"
+                      type="number"
+                      class="input input-bordered input-sm w-full"
+                      bind:value={amountLimitMax}
+                      placeholder="e.g., 1000"
+                      min="1"
+                    />
+                    <p class="text-xs text-base-content/50">Amount in cents (e.g., 1000 = $10.00)</p>
+                  </div>
+                </div>
+              {/if}
             </div>
           </div>
 
-          <!-- Payment Limit -->
-          <div class="form-control">
-            <label class="label" for="payment-limit-type">
-              <span class="label-text">Payment Limit</span>
-            </label>
-            <select
-              id="payment-limit-type"
-              class="select select-bordered"
-              bind:value={paymentLimitType}
-            >
-              <option value="CARD_BALANCE">Card Balance (spend all available points, up to order total)</option>
-              <option value="POINTS_LIMIT">Points Limit (cap points spent)</option>
-              <option value="AMOUNT_LIMIT">Amount Limit (cap monetary value covered)</option>
-            </select>
-          </div>
-
-          {#if paymentLimitType === 'POINTS_LIMIT'}
-            <div class="form-control">
-              <label class="label" for="points-limit-max">
-                <span class="label-text">Max Points to Spend</span>
-              </label>
-              <input
-                id="points-limit-max"
-                type="number"
-                class="input input-bordered"
-                bind:value={pointsLimitMax}
-                placeholder="e.g., 200"
-                min="1"
-              />
-            </div>
-          {/if}
-
-          {#if paymentLimitType === 'AMOUNT_LIMIT'}
-            <div class="form-control">
-              <label class="label" for="amount-limit-max">
-                <span class="label-text">Max Amount Covered (in cents)</span>
-                <span class="label-text-alt text-base-content/50">e.g., 1000 = $10.00</span>
-              </label>
-              <input
-                id="amount-limit-max"
-                type="number"
-                class="input input-bordered"
-                bind:value={amountLimitMax}
-                placeholder="e.g., 1000"
-                min="1"
-              />
-            </div>
-          {/if}
-
-          <!-- Dry Run Toggle -->
-          <div class="form-control">
+          <!-- Dry Run Card -->
+          <div class="card bg-base-200 p-4">
             <label class="label cursor-pointer justify-start gap-3">
               <input
                 type="checkbox"
@@ -215,7 +274,7 @@
               />
               <div>
                 <span class="label-text font-medium">Dry Run</span>
-                <p class="text-[10px] text-base-content/60">Simulate the payment — shows how many points would be spent without creating a transaction</p>
+                <p class="text-[10px] text-base-content/60">Simulate the payment without creating a real transaction</p>
               </div>
             </label>
           </div>
@@ -241,6 +300,11 @@
             </svg>
             <div class="flex-1">
               <div class="font-bold text-sm">{dryRun ? 'Dry Run Result' : 'Payment Initiated'}</div>
+              {#if createdOrderId}
+                <p class="text-xs mt-1">
+                  Order: <span class="font-mono">{createdOrderId}</span>
+                </p>
+              {/if}
               {#if dryRun && result?.details}
                 <p class="text-xs mt-1">
                   Would spend <strong>{result.details?.payment?.points_spent || 0} pts</strong>
@@ -294,3 +358,11 @@
     </form>
   </dialog>
 {/if}
+
+<!-- Order Selection Modal -->
+<OrderSelectionModal
+  open={orderSelectionOpen}
+  customerId={member?.customer_id || ''}
+  onClose={() => { orderSelectionOpen = false; }}
+  onOrderSelected={handleOrderSelected}
+/>
