@@ -1,6 +1,6 @@
 <script>
   import EntityColumn from './EntityColumn.svelte';
-  import RewardCostPopover from './RewardCostPopover.svelte';
+  import RewardStockEditor from './RewardStockEditor.svelte';
   import { entityIcons } from '../config/designerConfig.js';
   import { getEarningRuleSummary } from '../utils/earningRuleSummary.js';
 
@@ -33,8 +33,8 @@
     assignmentActive = false,
     isEntityAssigned = () => false,
     toggleEntityAssignment = () => {},
-    setRewardCost = () => {},
-    pendingChanges = { toAssign: {}, rewardCosts: {} },
+    setRewardStock = () => {},
+    pendingChanges = { toAssign: {}, rewardStock: {} },
     selection = null,
     earningRuleCards = {},
     getClasses = () => '',
@@ -77,26 +77,26 @@
     digitalGiftCards: entities.incentives.filter(r => r.type === "DIGITAL" && r.digital?.type === "GIFT_VOUCHERS"),
   });
 
-  // Reward cost popover state
+  // Reward stock editor state
   // mode: 'new' (toggling assignment, close = unassign) | 'edit' (already assigned, close = dismiss)
-  let rewardCostPopover = $state(null); // { rewardId, mode }
+  let rewardStockEditor = $state(null); // { rewardId, mode }
 
   function handleRewardToggle(entityType, rewardId) {
     const alreadyAssigned = isEntityAssigned(entityType, rewardId);
     if (!alreadyAssigned) {
-      // About to assign — show cost popover in "new" mode
+      // About to assign — show stock editor in "new" mode
       toggleEntityAssignment(entityType, rewardId);
-      rewardCostPopover = { rewardId, mode: 'new' };
+      rewardStockEditor = { rewardId, mode: 'new' };
     } else {
-      // Unassigning — no popover needed
+      // Unassigning — no editor needed
       toggleEntityAssignment(entityType, rewardId);
-      rewardCostPopover = null;
+      rewardStockEditor = null;
     }
   }
 
-  // Open popover to edit costs of an already-assigned reward (no assignment state change)
-  function openRewardCostEditor(rewardId) {
-    rewardCostPopover = { rewardId, mode: 'edit' };
+  // Open editor to edit stock of an already-assigned reward (no assignment state change)
+  function openRewardStockEditor(rewardId) {
+    rewardStockEditor = { rewardId, mode: 'edit' };
   }
 
   // Shared earning rule column props
@@ -166,9 +166,82 @@
 
 <!-- Earnings panel -->
 <div class="bg-base-200/50 rounded-xl p-5 space-y-4">
-  <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">Earnings</p>
+  <div class="flex items-center gap-2">
+    <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">Earnings</p>
+    {#if assignmentActive}
+      <span class="badge badge-xs badge-ghost text-base-content/50">Toggle to assign</span>
+    {/if}
+  </div>
 
   <!-- Earning Rules: 3 trigger columns at full width -->
+  {#snippet earningRuleBody(item)}
+    {@const earnings = item.earnings}
+    {#if earnings?.length}
+      {@const allEffects = earnings.flatMap(block => block.effects || [])}
+      {@const blocksWithTierRules = earnings.filter(block => block.tier_rules?.type === 'ANY_OF' && block.tier_rules.any_of?.length > 0)}
+      <div class="mt-2 pt-2 border-t border-base-200">
+        <div class="flex items-start gap-2 text-xs">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-base-content/50 shrink-0 mt-0.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
+          </svg>
+          <div class="flex-1 space-y-1.5">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-semibold text-base-content/70">Earnings:</span>
+              <span class="badge badge-sm badge-ghost">
+                {allEffects.length} effect{allEffects.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            {#if allEffects.length > 0}
+              <div class="space-y-1">
+                {#each allEffects.slice(0, 3) as effect}
+                  <div class="flex items-center gap-1.5 flex-wrap text-[10px]">
+                    {#if effect.type === 'POINTS' && effect.points}
+                      <span class="badge badge-xs badge-primary">
+                        {effect.points.value} pts
+                      </span>
+                      {#if effect.points.card_definition_id}
+                        <span class="text-base-content/50">→</span>
+                        <span class="badge badge-xs badge-outline font-mono">
+                          {cardDefinitionsById[effect.points.card_definition_id]?.name || 'Unknown'}
+                        </span>
+                      {/if}
+                    {:else if effect.type === 'INCENTIVE' && effect.incentive}
+                      <span class="badge badge-xs badge-secondary">Incentive</span>
+                      {#if effect.incentive.id}
+                        {@const incentive = entities.incentives.find(i => i.id === effect.incentive.id)}
+                        {#if incentive}
+                          <span class="text-base-content/50">→</span>
+                          <span class="badge badge-xs badge-outline font-mono truncate max-w-[100px]" title={incentive.name}>
+                            {incentive.name || incentive.id}
+                          </span>
+                        {/if}
+                      {/if}
+                    {:else if effect.type === 'POINTS_PROPORTIONAL'}
+                      <span class="badge badge-xs badge-accent">Points Proportional</span>
+                    {/if}
+                  </div>
+                {/each}
+                {#if allEffects.length > 3}
+                  <div class="text-[10px] text-base-content/50 italic">
+                    +{allEffects.length - 3} more effect{allEffects.length - 3 !== 1 ? 's' : ''}
+                  </div>
+                {/if}
+              </div>
+            {/if}
+            {#if blocksWithTierRules.length > 0}
+              <div class="flex items-center gap-1.5 text-[10px] text-base-content/60 pt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                </svg>
+                <span>Tier rules: {blocksWithTierRules.length} block{blocksWithTierRules.length !== 1 ? 's' : ''}</span>
+              </div>
+            {/if}
+          </div>
+        </div>
+      </div>
+    {/if}
+  {/snippet}
+
   {#snippet earningRuleExtra(item)}
     {#if earningRuleCards[item.id]?.length}
       <span class="font-medium">Cards <span class="badge badge-xs badge-ghost">{earningRuleCards[item.id].length}</span></span>
@@ -177,6 +250,7 @@
       <span class="text-base-content/40">Uses nothing</span>
     {/if}
   {/snippet}
+  
   <div class="grid gap-4" style="grid-template-columns: 1fr 1fr 1fr;">
     {#each EARNING_RULE_TRIGGERS as { key, name }}
       <EntityColumn
@@ -184,6 +258,7 @@
         items={earningRulesByTrigger[key]}
         {name}
         {...earningRuleColumnProps}
+        bodyContent={earningRuleBody}
         extraBadges={earningRuleExtra}
       />
     {/each}
@@ -191,7 +266,12 @@
 
   <!-- Divider + Incentives (label matches Earnings / Rewards) -->
   <div class="divider mt-4 mb-1"></div>
-  <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">Incentives</p>
+  <div class="flex items-center gap-2">
+    <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">Incentives</p>
+    {#if assignmentActive}
+      <span class="badge badge-xs badge-ghost text-base-content/50">View only</span>
+    {/if}
+  </div>
   <div class="grid gap-4" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
         <!-- Points -->
         <EntityColumn
@@ -238,20 +318,70 @@
 
 <!-- Rewards panel -->
 <div class="bg-base-200/50 rounded-xl p-5 space-y-4">
-  <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">Rewards</p>
+  <div class="flex items-center gap-2">
+    <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">Rewards</p>
+    {#if assignmentActive}
+      <span class="badge badge-xs badge-ghost text-base-content/50">Toggle to assign</span>
+    {/if}
+  </div>
+
+  {#snippet rewardBody(item)}
+    {@const costs = item.costs}
+    {@const firstCost = costs?.[0]}
+    {@const firstSpending = firstCost?.spending?.[0]}
+    {@const costsWithTierRules = costs?.filter(cost => cost.tier_rules?.type === 'ANY_OF' && cost.tier_rules.any_of?.length > 0) || []}
+    
+    {#if !assignmentActive && costs?.length && firstSpending}
+      <!-- Costs section - only show when not in assignment mode -->
+      <div class="mt-2 pt-2 border-t border-base-200">
+        <div class="flex items-start gap-2 text-xs">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-base-content/50 shrink-0 mt-0.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+          </svg>
+          <div class="flex-1 space-y-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-semibold text-base-content/70">Cost:</span>
+              <span class="badge badge-sm badge-ghost font-mono">{firstSpending.points} pts</span>
+              <span class="text-base-content/50">from</span>
+              <span class="badge badge-sm badge-outline font-mono text-[10px]">
+                {cardDefinitionsById[firstSpending.card_definition_id]?.name || 'Unknown Wallet'}
+              </span>
+            </div>
+            {#if costs.length > 1}
+              <div class="text-[10px] text-base-content/50">
+                +{costs.length - 1} more cost configuration{costs.length > 2 ? 's' : ''}
+              </div>
+            {/if}
+            {#if costsWithTierRules.length > 0}
+              <div class="flex items-center gap-1.5 text-[10px] text-base-content/60 pt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                </svg>
+                <span>Tier rules: {costsWithTierRules.length} cost{costsWithTierRules.length !== 1 ? 's' : ''}</span>
+              </div>
+            {/if}
+          </div>
+        </div>
+      </div>
+    {/if}
+  {/snippet}
 
   {#snippet rewardExtra(item)}
-    {@const cost = pendingChanges.rewardCosts?.[item.id]}
+    {@const stock = pendingChanges.rewardStock?.[item.id]}
     {@const assigned = isEntityAssigned("rewards", item.id)}
-    {#if assignmentActive && assigned && cost}
+    
+    {#if assignmentActive && assigned && stock}
       <span class="inline-flex items-center gap-1 text-primary/70 font-medium">
-        {cost.points} pts
-        {#if cost.stock > 0}<span class="text-base-content/40">· {cost.stock} stock</span>{/if}
+        {#if stock.type === 'UNLIMITED'}
+          <span class="text-base-content/60">∞ Unlimited</span>
+        {:else if stock.type === 'LIMITED'}
+          <span>Limited: {stock.limited?.quantity || 0}</span>
+        {/if}
         <button
           class="btn btn-ghost btn-xs btn-circle min-h-0 h-4 w-4 ml-0.5"
-          onclick={(e) => { e.stopPropagation(); openRewardCostEditor(item.id); }}
-          title="Edit assignment cost"
-          aria-label="Edit reward cost"
+          onclick={(e) => { e.stopPropagation(); openRewardStockEditor(item.id); }}
+          title="Edit stock"
+          aria-label="Edit reward stock"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-2.5 h-2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
@@ -261,13 +391,13 @@
     {:else if assignmentActive && assigned}
       <button
         class="btn btn-ghost btn-xs gap-1 min-h-0 h-5 text-warning/80 font-medium"
-        onclick={(e) => { e.stopPropagation(); openRewardCostEditor(item.id); }}
-        title="Set assignment cost"
+        onclick={(e) => { e.stopPropagation(); openRewardStockEditor(item.id); }}
+        title="Set stock"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
         </svg>
-        Set cost
+        Set stock
       </button>
     {/if}
   {/snippet}
@@ -279,29 +409,29 @@
         items={rewardsByType[key]}
         {name}
         {...rewardColumnProps}
+        bodyContent={rewardBody}
         extraBadges={rewardExtra}
       />
     {/each}
   </div>
 </div>
 
-<!-- Reward Cost Popover -->
-{#if rewardCostPopover && assignmentActive}
-  <RewardCostPopover
-    rewardId={rewardCostPopover.rewardId}
-    cardDefinitions={getRewardCardDefinitions()}
-    existingCost={pendingChanges.rewardCosts?.[rewardCostPopover.rewardId]}
-    onConfirm={(costData) => {
-      setRewardCost(rewardCostPopover.rewardId, costData);
-      rewardCostPopover = null;
+<!-- Reward Stock Editor -->
+{#if rewardStockEditor && assignmentActive}
+  <RewardStockEditor
+    rewardId={rewardStockEditor.rewardId}
+    existingStock={pendingChanges.rewardStock?.[rewardStockEditor.rewardId]}
+    onConfirm={(stockData) => {
+      setRewardStock(rewardStockEditor.rewardId, stockData);
+      rewardStockEditor = null;
     }}
     onClose={() => {
-      if (rewardCostPopover?.mode === 'new') {
+      if (rewardStockEditor?.mode === 'new') {
         // New assignment cancelled — undo the assignment toggle
-        toggleEntityAssignment("rewards", rewardCostPopover.rewardId);
+        toggleEntityAssignment("rewards", rewardStockEditor.rewardId);
       }
       // In 'edit' mode, just dismiss without changing assignment state
-      rewardCostPopover = null;
+      rewardStockEditor = null;
     }}
   />
 {/if}

@@ -1,11 +1,21 @@
 <script>
+  import Router from 'svelte-spa-router';
   import TopBar from './components/TopBar.svelte';
   import ApiInspector from './components/ApiInspector.svelte';
   import SettingsModal from './components/SettingsModal.svelte';
   import Designer from './views/Designer.svelte';
+  import ProgramDetailPage from './views/ProgramDetailPage.svelte';
+  import MemberDetailPage from './views/MemberDetailPage.svelte';
+  import { getDesignerActions } from './stores/designerActions.svelte.js';
 
   let settingsModalOpen = $state(false);
-  let designerActions = $state(null);
+  const designerActions = $derived(getDesignerActions());
+
+  const routes = {
+    '/': Designer,
+    '/programs/:programId': ProgramDetailPage,
+    '/programs/:programId/members/:memberId': MemberDetailPage,
+  };
 </script>
 
 <div class="min-h-screen bg-base-100 flex flex-col">
@@ -13,7 +23,7 @@
   
   <!-- Main content area with view switching -->
   <div class="flex-1 pb-16">
-    <Designer bind:designerActions />
+    <Router {routes} restoreScrollState={true} />
   </div>
   
   <ApiInspector />

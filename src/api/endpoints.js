@@ -94,7 +94,6 @@ export const endpoints = {
     // Tiers (nested)
     tiers: {
       list: (structureId) => `/v2/loyalties/tier-structures/${structureId}/tiers`,
-      get: (structureId, tierId) => `/v2/loyalties/tier-structures/${structureId}/tiers/${tierId}`,
       create: (structureId) => `/v2/loyalties/tier-structures/${structureId}/tiers`,
       update: (structureId, tierId) => `/v2/loyalties/tier-structures/${structureId}/tiers/${tierId}`,
       delete: (structureId, tierId) => `/v2/loyalties/tier-structures/${structureId}/tiers/${tierId}`

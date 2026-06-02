@@ -16,6 +16,7 @@
     entityData = {},
     updateEndpoint = "",
     activitiesEndpoint = "",
+    prefillData = {},
     // Relationship data for Linked tab
     programs = [],
     earningRuleIncentives = {},
@@ -31,6 +32,17 @@
 
   // Local tab state
   let currentTab = $state(activeTab);
+
+  // Derive parent tier structure status if editing a tier
+  const parentTierStructureStatus = $derived.by(() => {
+    if (entityType !== 'tiers' || !prefillData?.tierStructureId) return null;
+    
+    const tierStructure = entities.tierStructures?.find(
+      ts => ts.id === prefillData.tierStructureId
+    );
+    
+    return tierStructure?.status || null;
+  });
 
   // Sync currentTab when prop changes
   $effect(() => {
@@ -207,6 +219,13 @@
     usedByGroups.reduce((acc, g) => acc + g.items.length, 0) +
     usesGroups.reduce((acc, g) => acc + g.items.length, 0)
   );
+
+  // Strip augmented properties to show only raw API data in JSON tab
+  const rawApiData = $derived.by(() => {
+    if (!item) return null;
+    const { assignedEntities, assignments, membersCount, ...apiData } = item;
+    return apiData;
+  });
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -271,7 +290,7 @@
   {#if currentTab === "details"}
     <div class="flex-1 overflow-y-auto p-4">
       {#if item}
-        <FieldValueList {item} />
+        <FieldValueList {item} {entityType} cardDefinitions={entities.cardDefinitions || []} />
       {:else}
         <p class="text-sm text-base-content/50 text-center py-8">No details available</p>
       {/if}
@@ -283,15 +302,6 @@
   {:else if currentTab === "usedBy"}
     <EntityLinkedTab {usedByGroups} {usesGroups} {onNavigate} />
 
-  {:else if currentTab === "json"}
-    <div class="flex-1 overflow-y-auto p-4">
-      {#if item}
-        <pre class="text-xs font-mono bg-base-200 rounded-lg p-3 whitespace-pre-wrap break-all">{JSON.stringify(item, null, 2)}</pre>
-      {:else}
-        <p class="text-sm text-base-content/50 text-center py-8">No data available</p>
-      {/if}
-    </div>
-
   {:else if currentTab === "edit"}
     <EntityEditTab
       {open}
@@ -300,8 +310,24 @@
       {entityData}
       {updateEndpoint}
       {entityLabel}
+      parentStatus={parentTierStructureStatus}
+      cardDefinitions={entities.cardDefinitions || []}
+      incentives={entities.incentives || []}
+      tierStructures={entities.tierStructures || []}
       onUpdated={onUpdated}
       onClose={handleClose}
     />
+
+  {:else if currentTab === "json"}
+    <div class="flex-1 overflow-y-auto p-4">
+      {#if rawApiData}
+        <div class="text-xs text-base-content/60 mb-3">
+          Raw API response (augmented UI properties removed)
+        </div>
+        <pre class="bg-base-200 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre-wrap break-all">{JSON.stringify(rawApiData, null, 2)}</pre>
+      {:else}
+        <p class="text-sm text-base-content/50 text-center py-8">No data available</p>
+      {/if}
+    </div>
   {/if}
 </div>

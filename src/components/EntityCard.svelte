@@ -15,6 +15,7 @@
     isShaking = false,
     isRemoving = false,
     extraBadges,
+    bodyContent,
     onSelect = () => {},
     onStatusChange = () => {},
     onExpand = null,
@@ -225,6 +226,10 @@
       {/if}
 
       <FeatureIcons {entityType} {item} />
+
+      {#if bodyContent}
+        {@render bodyContent(item)}
+      {/if}
 
       <div
         class="flex items-center justify-center gap-3 mt-2 pt-2 border-t border-base-200 text-xs text-base-content/60 flex-wrap"

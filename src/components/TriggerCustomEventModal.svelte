@@ -2,7 +2,6 @@
   import { api } from "../api/client.js";
   import { endpoints } from "../api/endpoints.js";
   import { toast } from "../services/toast.js";
-  import JsonSchemaEditor from "./JsonSchemaEditor.svelte";
 
   let {
     open = false,
@@ -14,7 +13,6 @@
   let submitting = $state(false);
   let eventType = $state("");
   let eventMetadata = $state("{}");
-  let editorRef = $state(null);
 
   function resetForm() {
     eventType = "";
@@ -34,11 +32,10 @@
     }
 
     let metadata = {};
-    const rawMetadata = editorRef ? editorRef.getValue() : eventMetadata;
     try {
-      metadata = JSON.parse(rawMetadata);
-    } catch (e) {
-      toast.error("Invalid JSON metadata");
+      metadata = JSON.parse(eventMetadata);
+    } catch {
+      toast.error("Invalid JSON in metadata");
       return;
     }
 
@@ -103,20 +100,36 @@
 
       <div class="card bg-base-200 p-4">
         <div class="space-y-4">
-          <input
-            type="text"
-            class="input input-bordered font-mono w-full"
-            bind:value={eventType}
-            placeholder="Event type (e.g., customer.custom_event_name)"
-          />
+          <div class="form-control">
+            <label class="label" for="event-type">
+              <span class="label-text font-medium">Event Type</span>
+            </label>
+            <input
+              id="event-type"
+              type="text"
+              class="input input-bordered font-mono w-full"
+              bind:value={eventType}
+              placeholder="Event type (e.g., customer.custom_event_name)"
+              disabled={submitting}
+            />
+          </div>
 
-          <JsonSchemaEditor
-            bind:this={editorRef}
-            bind:value={eventMetadata}
-            schema={null}
-            readonly={submitting}
-            height="140px"
-          />
+          <div class="form-control">
+            <label class="label" for="event-metadata">
+              <span class="label-text font-medium">Event Metadata</span>
+            </label>
+            <textarea
+              id="event-metadata"
+              class="textarea textarea-bordered font-mono text-xs"
+              rows="4"
+              bind:value={eventMetadata}
+              placeholder="{'{}'}"
+              disabled={submitting}
+            ></textarea>
+            <label class="label">
+              <span class="label-text-alt">JSON object for this event</span>
+            </label>
+          </div>
 
           <div class="alert alert-info">
             <svg

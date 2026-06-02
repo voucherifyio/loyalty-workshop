@@ -1,14 +1,15 @@
 <script>
   import { untrack } from "svelte";
+  import { push } from "svelte-spa-router";
   import { api } from "../api/client.js";
   import { endpoints } from "../api/endpoints.js";
   import CreateEntityDrawer from "../components/CreateEntityDrawer.svelte";
   import EntityDrawer from "../components/EntityDrawer.svelte";
   import AssignmentSaveBar from "../components/AssignmentSaveBar.svelte";
+  import AssignmentModeInfo from "../components/AssignmentModeInfo.svelte";
   import PointsSection from "../components/PointsSection.svelte";
   import WalletsSection from "../components/WalletsSection.svelte";
   import ProgramsSection from "../components/ProgramsSection.svelte";
-  import MembersDrawer from "../components/MembersDrawer.svelte";
   import TierStructureAssignPopover from "../components/TierStructureAssignPopover.svelte";
   import {
     samplePayloads,
@@ -22,6 +23,7 @@
   import { paginationStore } from "../stores/designer/pagination.svelte.js";
   import { assignmentStore } from "../stores/designer/assignment.svelte.js";
   import { relationshipsStore } from "../stores/designer/relationships.svelte.js";
+  import { setDesignerActions } from "../stores/designerActions.svelte.js";
 
   // ── Core data state ──────────────────────────────────────────────────────
   let programs = $state([]);
@@ -38,7 +40,6 @@
     open: false, activeTab: "details", entityType: null, entityId: null,
     item: null, entityData: {}, updateEndpoint: "", activitiesEndpoint: "", prefillData: null,
   });
-  let membersDrawer = $state({ open: false, programId: null, programName: '' });
   let createModal = $state({ open: false, entityType: null, prefillData: null });
   let expandedTierStructures = $state({});
 
@@ -84,15 +85,15 @@
     return () => clearInterval(interval);
   });
 
-  // Expose actions to TopBar via parent binding
-  let { designerActions = $bindable(null) } = $props();
+  // Expose actions to TopBar via store
   $effect(() => {
-    designerActions = {
+    setDesignerActions({
       fetchAll: loadData,
       loadEverything,
       get loading() { return paginationStore.loading; },
       get loadingAll() { return paginationStore.loadingAll; },
-    };
+    });
+    return () => setDesignerActions(null);
   });
 
   // ── Data loading ──────────────────────────────────────────────────────────
@@ -227,20 +228,27 @@
     }
   }
 
-  async function openEditTier(tierStructureId, tierId) {
-    try {
-      const data = await api.get(endpoints.tierStructures.tiers.get(tierStructureId, tierId));
-      entityDrawer = {
-        open: true, activeTab: "edit", entityType: "tiers", entityId: tierId,
-        item: findEntityById("tierStructures", tierStructureId) || null,
-        entityData: data || {},
-        updateEndpoint: endpoints.tierStructures.tiers.update(tierStructureId, tierId),
-        activitiesEndpoint: "",
-        prefillData: { tierStructureId },
-      };
-    } catch {
-      toast.error('Failed to load tier for editing');
+  function openEditTier(tierStructureId, tierId) {
+    // Find the tier in the already-loaded expandedTierStructures
+    const tiers = expandedTierStructures[tierStructureId] || [];
+    const tierData = tiers.find(t => t.id === tierId);
+    
+    if (!tierData) {
+      toast.error('Tier not found. Please expand the tier structure first.');
+      return;
     }
+    
+    entityDrawer = {
+      open: true,
+      activeTab: "details",
+      entityType: "tiers",
+      entityId: tierId,
+      item: tierData, // Use the tier as the item
+      entityData: tierData, // Pass the tier data directly
+      updateEndpoint: endpoints.tierStructures.tiers.update(tierStructureId, tierId),
+      activitiesEndpoint: "",
+      prefillData: { tierStructureId },
+    };
   }
 
   async function deleteTier(tierStructureId, tierId) {
@@ -269,19 +277,8 @@
     }
   }
 
-  function showMembers(programId, programName) {
-    membersDrawer = { open: true, programId, programName };
-  }
-
-  function refreshProgramMemberCount(programId) {
-    const idx = programs.findIndex((p) => p.id === programId);
-    if (idx === -1) return;
-    api.get(endpoints.members.list(programId, { limit: 1 }))
-      .then((res) => {
-        const count = res.data?.length > 0 ? (res.cursor ? '1+' : res.data.length) : 0;
-        programs = programs.map((p, i) => i === idx ? { ...p, membersCount: count } : p);
-      })
-      .catch(() => {});
+  function handleNavigateToProgram(programId) {
+    push(`/programs/${programId}`);
   }
 
   function openCreateModal(entityType) {
@@ -355,8 +352,8 @@
   function getRewardCardDefinitions() {
     return assignmentStore.getRewardCardDefinitions(sel(), programs, entities);
   }
-  function setRewardCost(rewardId, costData) {
-    assignmentStore.setRewardCost(rewardId, costData);
+  function setRewardStock(rewardId, stockData) {
+    assignmentStore.setRewardStock(rewardId, stockData);
   }
   async function saveAllAssignments() {
     await assignmentStore.saveAllAssignments(sel(), programs);
@@ -420,17 +417,31 @@
       onCancelStatusChange={cancelStatusChange}
       onStatusChange={changeEntityStatus}
       onExpand={openDetailDrawer}
+      onNavigate={handleNavigateToProgram}
       onLoadMore={() => loadMore("programs")}
       onRefresh={() => refreshEntity("programs")}
       onHoverChange={(value) => { hoveredCard = value; }}
-      onShowMembers={showMembers}
     />
   </div>
+
+  <!-- Assignment Mode Info Banner -->
+  {#if selectionStore.assignmentActive}
+    {@const selectedProgram = programs.find(p => p.id === selectionStore.selection.id)}
+    <AssignmentModeInfo 
+      programName={selectedProgram?.name || selectedProgram?.id || ''}
+      onClose={() => selectionStore.clear()}
+    />
+  {/if}
 
   <!-- Wallets Section -->
   <div class="bg-base-200/50 rounded-xl p-5 space-y-4">
     <div class="flex items-center justify-between">
-      <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">Wallets</p>
+      <div class="flex items-center gap-2">
+        <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">Wallets</p>
+        {#if selectionStore.assignmentActive}
+          <span class="badge badge-xs badge-ghost text-base-content/50">Click checkboxes to assign</span>
+        {/if}
+      </div>
       <button class="btn btn-circle btn-xs btn-primary" onclick={() => openCreateModal("cardDefinitions")} title="Create Card Definition">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -484,7 +495,7 @@
     assignmentActive={selectionStore.assignmentActive}
     {isEntityAssigned}
     {toggleEntityAssignment}
-    {setRewardCost}
+    {setRewardStock}
     pendingChanges={assignmentStore.pendingChanges}
     selection={selectionStore.selection}
     earningRuleCards={relationshipsStore.earningRuleCards}
@@ -511,18 +522,11 @@
 {/if}
 
 <AssignmentSaveBar
-  active={selectionStore.assignmentActive && assignmentStore.hasPendingChanges}
+  active={selectionStore.assignmentActive}
+  hasPendingChanges={assignmentStore.hasPendingChanges}
   pendingChanges={assignmentStore.pendingChanges}
   onSave={saveAllAssignments}
   onDiscard={cancelAllAssignments}
-/>
-
-<MembersDrawer
-  open={membersDrawer.open}
-  programId={membersDrawer.programId}
-  programName={membersDrawer.programName}
-  onClose={() => { membersDrawer = { ...membersDrawer, open: false }; }}
-  onMemberCountChange={() => refreshProgramMemberCount(membersDrawer.programId)}
 />
 
 <CreateEntityDrawer
@@ -537,6 +541,9 @@
     : createModal.entityType
     ? endpoints[createModal.entityType].create()
     : ""}
+  cardDefinitions={entities.cardDefinitions || []}
+  incentives={entities.incentives || []}
+  tierStructures={entities.tierStructures || []}
   onClose={closeCreateModal}
   onCreated={() => {
     if (createModal.entityType === "tiers" && createModal.prefillData?.tierStructureId) {
@@ -558,6 +565,7 @@
   entityData={entityDrawer.entityData}
   updateEndpoint={entityDrawer.updateEndpoint}
   activitiesEndpoint={entityDrawer.activitiesEndpoint}
+  prefillData={entityDrawer.prefillData || {}}
   {programs}
   earningRuleIncentives={relationshipsStore.earningRuleIncentives}
   earningRuleCards={relationshipsStore.earningRuleCards}

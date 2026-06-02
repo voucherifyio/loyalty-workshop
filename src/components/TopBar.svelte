@@ -1,8 +1,73 @@
 <script>
+  import { router } from "svelte-spa-router";
   import { connection } from "../stores/connection.svelte.js";
   import { theme } from "../stores/theme.svelte.js";
+  import { api } from "../api/client.js";
+  import { endpoints } from "../api/endpoints.js";
 
   let { onOpenSettings, designerActions = null } = $props();
+
+  let programName = $state(null);
+  let loadingProgram = $state(false);
+
+  $effect(() => {
+    const path = router.location;
+    programName = null;
+
+    if (!path || path === "/") return;
+
+    const programMatch = path.match(/^\/programs\/([^/]+)(?:\/members\/([^/]+))?$/);
+    if (programMatch) {
+      const programId = programMatch[1];
+      if (programId) {
+        fetchProgramName(programId);
+      }
+    }
+  });
+
+  async function fetchProgramName(programId) {
+    loadingProgram = true;
+    try {
+      const program = await api.get(endpoints.programs.get(programId));
+      programName = program.name || programId;
+    } catch {
+      programName = programId;
+    } finally {
+      loadingProgram = false;
+    }
+  }
+
+  const breadcrumbs = $derived.by(() => {
+    const path = router.location;
+    
+    const crumbs = [
+      { label: "Home", href: "#/", isHome: true }
+    ];
+
+    if (path && path !== "/") {
+      const programMatch = path.match(/^\/programs\/([^/]+)(?:\/members\/([^/]+))?$/);
+      if (programMatch) {
+        const programId = programMatch[1];
+        const memberIdFromPath = programMatch[2];
+
+        crumbs.push({
+          label: loadingProgram ? "Loading..." : (programName || programId),
+          href: `#/programs/${programId}`,
+          isHome: false
+        });
+
+        if (memberIdFromPath) {
+          crumbs.push({
+            label: `Member: ${memberIdFromPath}`,
+            href: `#/programs/${programId}/members/${memberIdFromPath}`,
+            isHome: false
+          });
+        }
+      }
+    }
+
+    return crumbs;
+  });
 
   const themes = [
     "light",
@@ -45,7 +110,23 @@
 </script>
 
 <div class="navbar bg-base-200 shadow-lg">
-  <div class="navbar-start"></div>
+  <div class="navbar-start">
+    <div class="text-xs breadcrumbs px-4">
+      <ul>
+        {#each breadcrumbs as crumb, i}
+          <li>
+            {#if i === breadcrumbs.length - 1}
+              <span class="text-base-content/60">{crumb.label}</span>
+            {:else}
+              <a href={crumb.href} class="text-base-content/80 hover:text-primary transition-colors">
+                {crumb.label}
+              </a>
+            {/if}
+          </li>
+        {/each}
+      </ul>
+    </div>
+  </div>
 
   <div class="navbar-end gap-2 items-center">
     <!-- Designer Action Buttons -->

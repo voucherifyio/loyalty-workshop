@@ -4,7 +4,8 @@
     status = '',
     hovered = false,
     onStatusChange = () => {},
-    onExpand = null
+    onExpand = null,
+    onNavigate = null
   } = $props();
   
   // Only Activate and Deactivate as quick-access shortcuts on the card
@@ -40,6 +41,18 @@
         {/if}
       </button>
     {/each}
+    {#if onNavigate}
+      <button
+        class="btn btn-xs btn-circle btn-primary join-item tooltip tooltip-bottom"
+        data-tip="Navigate"
+        onclick={(e) => { e.stopPropagation(); onNavigate(); }}
+        aria-label="Navigate"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+        </svg>
+      </button>
+    {/if}
     {#if onExpand}
       <button
         class="btn btn-xs btn-circle btn-ghost join-item tooltip tooltip-bottom"

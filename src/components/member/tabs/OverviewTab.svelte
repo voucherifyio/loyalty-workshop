@@ -1,6 +1,5 @@
 <script>
   import { formatNum, formatDate } from '../../../utils/transactionFormatting.js';
-  import CardReports from '../../member/CardReports.svelte';
 
   let {
     isMemberMode = false,
@@ -139,6 +138,7 @@
     {#if selectedMemberCard?.tier_progress?.current}
       {@const tp = selectedMemberCard.tier_progress.current}
       {@const tsId = selectedMemberCard.tier_progress.tier_structure?.id}
+      {@const opportunities = selectedMemberCard.tier_progress.opportunities ?? []}
       {@const range = Math.max(tp.points.max - tp.points.min, 1)}
       {@const pct = Math.min(100, Math.round(((tp.points.current - tp.points.min) / range) * 100))}
       {@const tierStart = selectedMemberCard?.created_at ? new Date(selectedMemberCard.created_at).getTime() : null}
@@ -149,9 +149,11 @@
       <div>
         <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest mb-3">Tier Progress</p>
         <div class="bg-base-200 rounded-xl p-4">
+          <!-- Current Tier -->
           <div class="flex items-start justify-between mb-3">
             <div>
               <p class="text-lg font-bold">{tp.name}</p>
+              <p class="text-[10px] text-base-content/50">Current Tier</p>
               {#if tsId}
                 <p class="text-[10px] font-mono text-base-content/40 mt-0.5">{tsId}</p>
               {/if}
@@ -175,6 +177,7 @@
             <span class="text-[9px] text-base-content/40">{formatNum(tp.points.min)}</span>
             <span class="text-[9px] text-base-content/40">{formatNum(tp.points.max)}</span>
           </div>
+          
           <!-- Tier validity timeline -->
           <div class="mt-4 pt-3 border-t border-base-300">
             <div class="flex justify-between text-[9px] text-base-content/40 mb-0.5">
@@ -194,6 +197,57 @@
               <span>{tierEnd ? fmtTierDate(tierEnd) : '∞'}</span>
             </div>
           </div>
+
+          <!-- Future Tier Opportunities -->
+          {#if opportunities.length > 0}
+            <div class="mt-4 pt-3 border-t border-base-300">
+              <p class="text-[10px] font-semibold text-base-content/40 uppercase tracking-widest mb-3">
+                Future Opportunities <span class="badge badge-xs badge-ghost ml-1 normal-case">{opportunities.length}</span>
+              </p>
+              <div class="space-y-2">
+                {#each opportunities as opp, idx}
+                  <div class="bg-base-300/50 rounded-lg p-3">
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center gap-2">
+                        <div class="badge badge-sm badge-info">{idx + 1}</div>
+                        <span class="text-xs font-semibold text-base-content/80">Next Tier</span>
+                      </div>
+                      <span class="text-xs font-mono text-base-content/50">{opp.tier_id}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      {#if opp.points === 0}
+                        <div class="flex items-center gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-success">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div>
+                            <p class="text-sm font-bold text-success">Eligible Now</p>
+                            <p class="text-[10px] text-base-content/50">Member can be upgraded to this tier</p>
+                          </div>
+                        </div>
+                      {:else}
+                        <div>
+                          <p class="text-[10px] text-base-content/50">Points Needed</p>
+                          <p class="text-lg font-bold text-warning">+{formatNum(opp.points)}</p>
+                        </div>
+                        <div class="text-right">
+                          <p class="text-[10px] text-base-content/50">Current Progress</p>
+                          <p class="text-xs text-base-content/60">{formatNum(tp.points.current)} pts</p>
+                        </div>
+                      {/if}
+                    </div>
+                    {#if opp.valid_until}
+                      <div class="mt-2 pt-2 border-t border-base-300">
+                        <p class="text-[9px] text-base-content/40">
+                          Valid until: {formatDate(opp.valid_until)}
+                        </p>
+                      </div>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
         </div>
       </div>
     {/if}
@@ -225,11 +279,6 @@
           </div>
         </div>
       </div>
-    {/if}
-
-    <!-- Card reports: flow breakdown + pending trend diagrams -->
-    {#if selectedCard?.id && programId && memberId}
-      <CardReports {programId} {memberId} cardId={selectedCard.id} />
     {/if}
 
     <!-- Pending points buckets -->

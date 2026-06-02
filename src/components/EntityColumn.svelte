@@ -16,6 +16,7 @@
     shakeCard = null,
     removingCard = null,
     extraBadges,
+    bodyContent,
     onCreate = null,
     onSelect = () => {},
     onStatusChange = () => {},
@@ -61,7 +62,13 @@
         <span class="loading loading-spinner loading-md"></span>
       </div>
     {:else if items.length === 0}
-      <p class="text-xs text-base-content/50 text-center py-8">No {name.toLowerCase()}</p>
+      <p class="text-xs text-base-content/50 text-center py-8">
+        {#if assignmentMode}
+          No {name.toLowerCase()} available to assign
+        {:else}
+          No {name.toLowerCase()}
+        {/if}
+      </p>
     {:else}
       <div class="space-y-2">
         {#each items as item (item.id)}
@@ -73,6 +80,7 @@
             isShaking={shakeCard?.type === entityType && shakeCard?.id === item.id}
             isRemoving={removingCard?.type === entityType && removingCard?.id === item.id}
             {extraBadges}
+            {bodyContent}
             {onSelect}
             {onStatusChange}
             onExpand={onExpand ? () => onExpand(entityType, item.id) : null}

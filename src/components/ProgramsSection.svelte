@@ -29,9 +29,9 @@
     onCancelStatusChange = () => {},
     onStatusChange = () => {},
     onExpand = null,
+    onNavigate = null,
     onLoadMore = () => {},
     onRefresh = () => {},
-    onShowMembers = null,
   } = $props();
 
   let hoveredPrograms = $state(new Set());
@@ -106,6 +106,7 @@
                     toStatus,
                     action,
                   )}
+                onNavigate={onNavigate ? () => onNavigate(program.id) : null}
                 onExpand={onExpand ? () => onExpand("programs", program.id) : null}
               />
 
@@ -131,27 +132,6 @@
               <!-- Date range -->
               <ProgramDateRange startDate={program.start_date} endDate={program.end_date} />
 
-              <!-- Members count -->
-              <div class="flex items-center justify-center mt-2 pt-2 border-t border-base-300">
-                {#if onShowMembers}
-                  <button
-                    class="flex items-center gap-1.5 text-xs text-base-content/60 hover:text-primary transition-colors cursor-pointer group/members"
-                    onclick={(e) => { e.stopPropagation(); onShowMembers(program.id, program.name || program.id); }}
-                    title="View members"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 shrink-0">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-                    </svg>
-                    <span class="font-medium">Members</span>
-                    <span class="badge badge-xs badge-ghost group-hover/members:badge-primary transition-colors">
-                      {program.membersCount ?? '…'}
-                    </span>
-                  </button>
-                {:else}
-                  <span class="text-xs text-base-content/40">Members <span class="badge badge-xs badge-ghost">{program.membersCount ?? '…'}</span></span>
-                {/if}
-              </div>
-
               <FeatureIcons entityType="programs" item={program} />
 
               <!-- Uses (assignment counts) — last row -->
@@ -171,6 +151,14 @@
           </div>
         {/each}
       </div>
+
+      {#if !loading && programs.length > 0}
+        <div class="text-center mt-3">
+          <p class="text-xs text-base-content/40">
+            Click a program to enter assignment mode
+          </p>
+        </div>
+      {/if}
 
       <!-- Load More / No More Items for Programs -->
       {#if !loading}
