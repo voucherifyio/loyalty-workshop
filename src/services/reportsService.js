@@ -34,3 +34,48 @@ export function calculateDateRange(days) {
     endDate: endDate.toISOString().split('T')[0],
   };
 }
+
+/**
+ * Fetch daily spending reports for a program (handles cursor pagination)
+ * @param {string} programId - Program ID
+ * @param {Object} params - Query parameters
+ * @param {string} params.start_date - Start date (ISO format)
+ * @param {string} params.end_date - End date (ISO format)
+ * @param {string} params.resolution - Time resolution ('day', 'week', 'month', 'quarter')
+ * @param {string} [params.card_definition_id] - Optional card definition filter
+ * @returns {Promise<Array>} Array of daily spending report data
+ */
+export async function fetchProgramSpendingDaily(programId, params) {
+  let allData = [];
+  let cursor = null;
+  
+  do {
+    const queryParams = { ...params };
+    if (cursor) {
+      queryParams.cursor = cursor;
+    }
+    
+    const result = await api.get(
+      endpoints.programs.spendingDaily(programId, queryParams)
+    );
+    
+    allData = allData.concat(result.data ?? []);
+    cursor = result.cursor?.next ?? null;
+  } while (cursor);
+  
+  return allData;
+}
+
+/**
+ * Fetch spending summary report for a program
+ * @param {string} programId - Program ID
+ * @param {Object} [params] - Query parameters
+ * @param {string} [params.card_definition_id] - Optional card definition filter
+ * @returns {Promise<Array>} Array of spending summary data
+ */
+export async function fetchProgramSpendingSummary(programId, params = {}) {
+  const result = await api.get(
+    endpoints.programs.spendingSummary(programId, params)
+  );
+  return result.data ?? [];
+}
