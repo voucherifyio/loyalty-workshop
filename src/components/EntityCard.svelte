@@ -6,6 +6,7 @@
   import CopyId from "./CopyId.svelte";
   import FeatureIcons from "./FeatureIcons.svelte";
   import StatusBadge from "./StatusBadge.svelte";
+  import CountBadge from "./shared/CountBadge.svelte";
 
   let {
     entityType = "",
@@ -236,8 +237,8 @@
       >
         {#if usage}
           <span class="font-medium"
-            >Used by <span class="badge badge-xs badge-ghost">{usage}</span
-            ></span
+            >Used by <CountBadge count={usage} /></span
+          >
           >
         {:else}
           <span class="badge badge-xs badge-ghost">Not used</span>

@@ -21,14 +21,17 @@ export const ENTITY_PROPERTIES = {
     },
     start_date: {
       label: 'Start Date',
+      type: 'datetime',
       states: ['DRAFT'],
     },
     end_date: {
       label: 'End Date',
+      type: 'datetime',
       states: ['DRAFT'],
     },
     metadata: {
       label: 'Metadata',
+      type: 'json',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
   },
@@ -38,40 +41,57 @@ export const ENTITY_PROPERTIES = {
       label: 'Card Definition Name',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
+    status: {
+      label: 'Status',
+      states: ['DRAFT'],
+    },
+    type: {
+      label: 'Type',
+      states: ['DRAFT'],
+    },
     code_config: {
       label: 'Code Config',
+      type: 'json',
       states: ['DRAFT'],
     },
     points_expiration: {
       label: 'Points Expiration',
+      type: 'json',
       states: ['DRAFT'],
     },
     pending_points: {
       label: 'Pending Points',
+      type: 'json',
       states: ['DRAFT'],
     },
     earning_limits: {
       label: 'Earning Limits',
+      type: 'json',
       states: ['DRAFT'],
     },
     spending_limits: {
       label: 'Spending Limits',
+      type: 'json',
       states: ['DRAFT'],
     },
     refunds: {
       label: 'Refunds',
+      type: 'json',
       states: ['DRAFT'],
     },
     balance_settings: {
       label: 'Balance Settings',
+      type: 'json',
       states: ['DRAFT'],
     },
     pay_with_points: {
       label: 'Pay With Points',
+      type: 'json',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
     metadata: {
       label: 'Metadata',
+      type: 'json',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
   },
@@ -81,16 +101,23 @@ export const ENTITY_PROPERTIES = {
       label: 'Earning Rule Name',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
+    status: {
+      label: 'Status',
+      states: ['DRAFT'],
+    },
     trigger: {
       label: 'Trigger',
+      type: 'json',
       states: ['DRAFT'],
     },
     earnings: {
       label: 'Earnings',
+      type: 'json',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
     error: {
       label: 'Error',
+      type: 'json',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
     validity_hours: {
@@ -99,18 +126,22 @@ export const ENTITY_PROPERTIES = {
     },
     start_date: {
       label: 'Start Date',
+      type: 'datetime',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
     end_date: {
       label: 'End Date',
+      type: 'datetime',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
     trigger_limits: {
       label: 'Trigger Limits',
+      type: 'json',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
     metadata: {
       label: 'Metadata',
+      type: 'json',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
   },
@@ -120,24 +151,32 @@ export const ENTITY_PROPERTIES = {
       label: 'Incentive Name',
       states: ['DRAFT', 'ACTIVE'],
     },
+    status: {
+      label: 'Status',
+      states: ['DRAFT'],
+    },
     type: {
       label: 'Type',
       states: ['DRAFT'],
     },
     points: {
       label: 'Points',
+      type: 'json',
       states: ['DRAFT'],
     },
     points_proportional: {
       label: 'Points Proportional',
+      type: 'json',
       states: ['DRAFT'],
     },
     material: {
       label: 'Material',
+      type: 'json',
       states: ['DRAFT'],
     },
     digital: {
       label: 'Digital',
+      type: 'json',
       states: ['DRAFT'],
     },
     stock: {
@@ -146,6 +185,7 @@ export const ENTITY_PROPERTIES = {
     },
     metadata: {
       label: 'Metadata',
+      type: 'json',
       states: ['DRAFT', 'ACTIVE'],
     },
   },
@@ -155,40 +195,52 @@ export const ENTITY_PROPERTIES = {
       label: 'Reward Name',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
+    status: {
+      label: 'Status',
+      states: ['DRAFT'],
+    },
     type: {
       label: 'Type',
       states: ['DRAFT'],
     },
     material: {
       label: 'Material',
+      type: 'json',
       states: ['DRAFT'],
     },
     digital: {
       label: 'Digital',
+      type: 'json',
       states: ['DRAFT'],
     },
     refunds: {
       label: 'Refunds',
+      type: 'json',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
     validity_hours: {
       label: 'Validity Hours',
+      type: 'json',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
     start_date: {
       label: 'Start Date',
+      type: 'datetime',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
     end_date: {
       label: 'End Date',
+      type: 'datetime',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
     costs: {
       label: 'Costs',
+      type: 'json',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
     metadata: {
       label: 'Metadata',
+      type: 'json',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
   },
@@ -198,28 +250,37 @@ export const ENTITY_PROPERTIES = {
       label: 'Tier Structure Name',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
+    status: {
+      label: 'Status',
+      states: ['DRAFT'],
+    },
     type: {
       label: 'Type',
       states: ['DRAFT'],
     },
     point_balance: {
       label: 'Point Balance',
+      type: 'json',
       states: ['DRAFT'],
     },
     point_earned: {
       label: 'Point Earned',
+      type: 'json',
       states: ['DRAFT'],
     },
     expiration: {
       label: 'Expiration',
+      type: 'json',
       states: ['DRAFT'],
     },
     downgrade: {
       label: 'Downgrade',
+      type: 'json',
       states: ['DRAFT'],
     },
     metadata: {
       label: 'Metadata',
+      type: 'json',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
   },
@@ -233,14 +294,17 @@ export const ENTITY_PROPERTIES = {
     },
     qualification_rules: {
       label: 'Qualification Rules',
+      type: 'json',
       states: ['DRAFT'],
     },
     downgrade: {
       label: 'Downgrade',
+      type: 'json',
       states: ['DRAFT'],
     },
     metadata: {
       label: 'Metadata',
+      type: 'json',
       states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
   },
@@ -261,6 +325,9 @@ export function getEditableProperties(entityType, entityState) {
   const editable = {};
 
   for (const [fieldName, fieldConfig] of Object.entries(properties)) {
+    // Skip metadata fields (fields starting with _)
+    if (fieldName.startsWith('_')) continue;
+    
     if (fieldConfig.states.includes(entityState)) {
       editable[fieldName] = fieldConfig;
     }

@@ -3,9 +3,9 @@
  * Used by MemberDetailModal tabs and any component rendering tx tables.
  */
 
-export const NEGATIVE_TYPES = new Set([
+const NEGATIVE_TYPES = new Set([
   'SPENT', 'SUBTRACTED', 'EXPIRED', 'LOCKED',
-  'POINTS_SPENT_ON_ORDER', 'POINTS_SPENT_ON_REWARD'
+  'POINTS_SPENT_ON_ORDER', 'POINTS_SPENT_ON_REWARD', 'ADMIN_DEBIT'
 ]);
 
 /** Returns a signed point total for a transaction (negative for deductions). */
@@ -24,7 +24,8 @@ export function getTxTypeColor(type) {
     EARNED: 'badge-success', ADDED: 'badge-info', SPENT: 'badge-error',
     SUBTRACTED: 'badge-warning', EXPIRED: 'badge-ghost', REFUNDED: 'badge-success',
     RETURNED: 'badge-info', LOCKED: 'badge-warning', UNLOCKED: 'badge-info',
-    POINTS_SPENT_ON_ORDER: 'badge-error', POINTS_SPENT_ON_REWARD: 'badge-error'
+    POINTS_SPENT_ON_ORDER: 'badge-error', POINTS_SPENT_ON_REWARD: 'badge-error',
+    ADMIN_DEBIT: 'badge-error', ADMIN_CREDIT: 'badge-success'
   };
   return colors[type] || 'badge-neutral';
 }
@@ -42,24 +43,6 @@ export function getTierTxTypeColor(type) {
     LEFT: 'badge-error'
   };
   return colors[type] || 'badge-neutral';
-}
-
-/**
- * Returns a DaisyUI badge class for a transaction/reward status.
- * Always returns a `badge-*` class.
- */
-export function getStatusColor(status) {
-  const colors = {
-    APPROVED: 'badge-success', REJECTED: 'badge-error',
-    PENDING: 'badge-warning', PROCESSING: 'badge-warning', PROCESSED: 'badge-info'
-  };
-  return colors[status] || 'badge-neutral';
-}
-
-/** Formats a cent amount to a dollar string, e.g. 1099 → "$10.99". */
-export function formatAmount(cents) {
-  if (cents == null) return 'N/A';
-  return `$${(cents / 100).toFixed(2)}`;
 }
 
 /** Formats a date string to locale date, returns '–' for null/invalid.

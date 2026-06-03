@@ -306,29 +306,38 @@
                       </div>
                     </td>
                   {:else}
-                    <td onclick={() => handleMemberClick(member.id)} class="cursor-pointer">
+                    <td>
                       <div class="flex items-center gap-2">
                         <span class="font-mono text-xs">{member.id}</span>
                         <CopyId id={member.id} />
                       </div>
                     </td>
-                    <td onclick={() => handleMemberClick(member.id)} class="cursor-pointer">
+                    <td>
                       <span class="text-sm">{member.customer_id || "-"}</span>
                     </td>
-                    <td onclick={() => handleMemberClick(member.id)} class="cursor-pointer">
+                    <td>
                       {#if member.status}
                         <StatusBadge status={member.status} />
                       {:else}
                         <span class="text-base-content/40">-</span>
                       {/if}
                     </td>
-                    <td onclick={() => handleMemberClick(member.id)} class="cursor-pointer">
+                    <td>
                       <span class="text-xs text-base-content/60">
                         {formatDate(member.created_at)}
                       </span>
                     </td>
                     <td class="text-right">
                       <div class="flex items-center justify-end gap-1">
+                        <button
+                          class="btn btn-xs btn-circle btn-primary tooltip tooltip-left"
+                          data-tip="View Details"
+                          onclick={() => handleMemberClick(member.id)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                          </svg>
+                        </button>
                         {#if member.status === "ACTIVE"}
                           <button
                             class="btn btn-xs btn-circle btn-error tooltip tooltip-left"

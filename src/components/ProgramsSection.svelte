@@ -5,6 +5,7 @@
   import CopyId from "./CopyId.svelte";
   import FeatureIcons from "./FeatureIcons.svelte";
   import ProgramDateRange from "./ProgramDateRange.svelte";
+  import CountBadge from "./shared/CountBadge.svelte";
   let {
     programs = [],
     loading = false,
@@ -138,10 +139,10 @@
               <div class="flex items-center justify-center gap-3 flex-wrap text-xs text-base-content/60 mt-2 pt-2 border-t border-base-200">
                 {#if program.assignments}
                   <span class="text-base-content/40">Uses</span>
-                  <span class="font-medium">Cards <span class="badge badge-xs badge-ghost">{program.assignments.cardDefinitions}</span></span>
-                  <span class="font-medium">Rules <span class="badge badge-xs badge-ghost">{program.assignments.earningRules}</span></span>
-                  <span class="font-medium">Rewards <span class="badge badge-xs badge-ghost">{program.assignments.rewards}</span></span>
-                  <span class="font-medium">Tiers <span class="badge badge-xs badge-ghost">{program.assignments.tierStructures}</span></span>
+                  <span class="font-medium">Cards <CountBadge count={program.assignments.cardDefinitions} /></span>
+                  <span class="font-medium">Rules <CountBadge count={program.assignments.earningRules} /></span>
+                  <span class="font-medium">Rewards <CountBadge count={program.assignments.rewards} /></span>
+                  <span class="font-medium">Tiers <CountBadge count={program.assignments.tierStructures} /></span>
                 {:else}
                   <span class="text-base-content/40">Uses nothing</span>
                 {/if}

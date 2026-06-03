@@ -3,6 +3,11 @@
   import { endpoints } from '../api/endpoints.js';
   import { toast } from '../services/toast.js';
   import OrderInputForm from './OrderInputForm.svelte';
+  import BaseModal from './shared/BaseModal.svelte';
+  import ModalHeader from './shared/ModalHeader.svelte';
+  import ModalFooter from './shared/ModalFooter.svelte';
+  import AlertBanner from './shared/AlertBanner.svelte';
+  import { buildPaidOrderPayload } from '../utils/orderPayload.js';
 
   let {
     open = false,
@@ -51,34 +56,7 @@
     error = null;
 
     try {
-      // Build order payload
-      const orderPayload = {
-        customer_id: customerId,
-        status: 'PAID'
-      };
-
-      if (createMode === 'simple') {
-        orderPayload.amount = parseInt(orderAmount);
-      } else {
-        // Add items to the payload
-        orderPayload.items = orderItems.map(item => {
-          const itemData = {
-            price: parseInt(item.price),
-            quantity: parseInt(item.quantity),
-            amount: parseInt(item.price) * parseInt(item.quantity)
-          };
-          if (item.product_id && item.product_id.trim()) {
-            itemData.product_id = item.product_id.trim();
-          }
-          if (item.sku_id && item.sku_id.trim()) {
-            itemData.sku_id = item.sku_id.trim();
-          }
-          return itemData;
-        });
-        // Calculate total amount from items
-        orderPayload.amount = orderPayload.items.reduce((sum, item) => sum + item.amount, 0);
-      }
-
+      const orderPayload = buildPaidOrderPayload({ customerId, createMode, orderAmount, orderItems });
       const orderResponse = await api.post(endpoints.orders.create(), orderPayload);
       toast.success(`Order created: ${orderResponse.id}`);
       reset();
@@ -102,88 +80,54 @@
       reset();
     }
   });
+
+  const subtitle = $derived(`Customer: ${customerId}`);
 </script>
 
-{#if open}
-  <dialog class="modal modal-open">
-    <div class="modal-box max-w-2xl">
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <h3 class="font-bold text-lg">Create Order</h3>
-          <p class="text-sm text-base-content/60 mt-1">
-            Customer: <span class="font-mono text-xs">{customerId}</span>
-          </p>
-        </div>
-        <button
-          class="btn btn-sm btn-circle btn-ghost"
-          onclick={handleClose}
-          disabled={submitting}
-          aria-label="Close modal"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
+<BaseModal {open} size="md" onClose={handleClose}>
+  {#snippet children()}
+    <ModalHeader
+      title="Create Order"
+      {subtitle}
+      onClose={handleClose}
+      disabled={submitting}
+    />
 
-      <div class="space-y-4">
-        <OrderInputForm
-          bind:mode={orderMode}
-          {customerId}
-          hideModeSelector={true}
-          bind:orderRefType
-          bind:orderRefValue
-          bind:orderAmount
-          bind:createMode
-          bind:orderItems
-        />
+    <div class="space-y-4">
+      <OrderInputForm
+        bind:mode={orderMode}
+        {customerId}
+        hideModeSelector={true}
+        bind:orderRefType
+        bind:orderRefValue
+        bind:orderAmount
+        bind:createMode
+        bind:orderItems
+      />
 
-        <div class="alert alert-info">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-5 h-5">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+      <AlertBanner variant="info" title="Earning Rules Trigger">
+        {#snippet children()}
           <div class="text-sm">
-            <div class="font-semibold mb-1">Earning Rules Trigger</div>
-            <div>Creates a <code class="bg-base-300 px-1 py-0.5 rounded text-xs">PAID</code> order with <code class="bg-base-300 px-1 py-0.5 rounded text-xs">customer.order.paid</code> event to activate configured earning rules</div>
+            Creates a <code class="bg-base-300 px-1 py-0.5 rounded text-xs">PAID</code> order with <code class="bg-base-300 px-1 py-0.5 rounded text-xs">customer.order.paid</code> event to activate configured earning rules
           </div>
-        </div>
+        {/snippet}
+      </AlertBanner>
 
-        {#if error}
-          <div class="alert alert-error">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 shrink-0">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-            </svg>
-            <div class="flex-1">
-              <div class="font-bold text-sm">Error</div>
-              <pre class="text-xs mt-1">{error}</pre>
-            </div>
-          </div>
-        {/if}
-      </div>
-
-      <div class="modal-action">
-        <button
-          class="btn btn-ghost"
-          onclick={handleClose}
-          disabled={submitting}
-        >
-          Cancel
-        </button>
-        <button
-          class="btn btn-primary"
-          onclick={handleSubmit}
-          disabled={submitting || !isValid()}
-        >
-          {#if submitting}
-            <span class="loading loading-spinner loading-sm"></span>
-          {:else}
-            Create Order
-          {/if}
-        </button>
-      </div>
+      {#if error}
+        <AlertBanner variant="error" title="Error">
+          {#snippet children()}
+            <pre class="text-xs mt-1">{error}</pre>
+          {/snippet}
+        </AlertBanner>
+      {/if}
     </div>
-    <form method="dialog" class="modal-backdrop">
-      <button onclick={handleClose}>close</button>
-    </form>
-  </dialog>
-{/if}
+
+    <ModalFooter
+      confirmLabel="Create Order"
+      loading={submitting}
+      confirmDisabled={!isValid()}
+      onCancel={handleClose}
+      onConfirm={handleSubmit}
+    />
+  {/snippet}
+</BaseModal>

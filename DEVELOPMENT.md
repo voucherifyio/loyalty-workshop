@@ -136,21 +136,59 @@ loyalty-workshop/
 │   │   └── queryString.js
 │   ├── components/       # Svelte components
 │   │   ├── charts/       # Chart components (LayerCake)
+│   │   ├── earnings/     # Earning rule components
 │   │   ├── entity/       # Entity management components
-│   │   └── member/       # Member management components
+│   │   ├── examine/      # Examination components
+│   │   ├── member/       # Member management components
+│   │   │   ├── dialogs/  # Member dialogs
+│   │   │   └── tabs/     # Member detail tabs
+│   │   ├── shared/       # Shared/reusable components
+│   │   │   ├── AlertBanner.svelte
+│   │   │   ├── BaseModal.svelte
+│   │   │   ├── ComplexFieldButton.svelte
+│   │   │   ├── CountBadge.svelte
+│   │   │   ├── DateTimeField.svelte
+│   │   │   ├── EmptyState.svelte
+│   │   │   ├── ExpandableJsonRow.svelte
+│   │   │   ├── FormField.svelte
+│   │   │   ├── FormSectionCard.svelte
+│   │   │   ├── JsonDisplay.svelte
+│   │   │   ├── KeyValueEditor.svelte
+│   │   │   ├── LoadingState.svelte
+│   │   │   ├── MetadataEditor.svelte
+│   │   │   ├── ModalFooter.svelte
+│   │   │   ├── ModalHeader.svelte
+│   │   │   └── SectionHeading.svelte
+│   │   └── wallets/      # Wallet components
 │   ├── config/           # Configuration files
 │   │   └── designerConfig.js
 │   ├── icons/            # SVG icon strings
 │   ├── services/         # Business logic services
-│   │   └── toast.js      # Toast notification service
+│   │   ├── cardActionsService.js     # Card-specific actions
+│   │   ├── designerStoreCoordinator.js # Designer state coordination
+│   │   ├── entityCrudService.js      # Unified entity CRUD operations
+│   │   ├── examinationService.js     # Examination logic
+│   │   ├── memberDataService.js      # Member data fetching
+│   │   ├── reportsService.js         # Card reports API
+│   │   ├── tierLoaderService.js      # Tier structure loading
+│   │   └── toast.js                  # Toast notification service
 │   ├── stores/           # Global state management
 │   │   ├── api-log.svelte.js
 │   │   ├── connection.svelte.js
 │   │   ├── theme.svelte.js
 │   │   └── designer/     # Designer-specific stores
 │   ├── utils/            # Utility functions
+│   │   ├── activityFormatting.js     # Activity type badge colors
+│   │   ├── downloadJson.js
+│   │   ├── orderPayload.js
+│   │   ├── reportChartConfig.js      # Chart configuration
+│   │   ├── reportDataTransforms.js   # Data transformations
+│   │   ├── stateAwarePayload.js
+│   │   ├── tierProgress.js
+│   │   └── transactionFormatting.js
 │   ├── views/            # Top-level views
-│   │   └── Designer.svelte
+│   │   ├── Designer.svelte
+│   │   └── MemberDetailPage.svelte
 │   ├── App.svelte        # Root component
 │   ├── app.css           # Global styles (Tailwind imports)
 │   └── main.js           # Entry point
@@ -259,6 +297,82 @@ export const myStore = new MyStore();
 </script>
 
 <div>{myStore.items.length} items</div>
+```
+
+### Using Shared Components
+
+The app includes many reusable shared components in `src/components/shared/`:
+
+```svelte
+import JsonDisplay from '../components/shared/JsonDisplay.svelte';
+import LoadingState from '../components/shared/LoadingState.svelte';
+import EmptyState from '../components/shared/EmptyState.svelte';
+import FormSectionCard from '../components/shared/FormSectionCard.svelte';
+import DateTimeField from '../components/shared/DateTimeField.svelte';
+import MetadataEditor from '../components/shared/MetadataEditor.svelte';
+import CountBadge from '../components/shared/CountBadge.svelte';
+
+<!-- JSON display -->
+<JsonDisplay data={responseData} />
+
+<!-- Loading state -->
+{#if loading}
+  <LoadingState message="Loading..." />
+{/if}
+
+<!-- Empty state -->
+{#if items.length === 0}
+  <EmptyState message="No items found" />
+{/if}
+
+<!-- Form section -->
+<FormSectionCard title="Details">
+  <!-- Form fields -->
+</FormSectionCard>
+
+<!-- Date/time input -->
+<DateTimeField
+  value={startDate}
+  fieldName="start_date"
+  onInput={(val) => startDate = val}
+/>
+
+<!-- Metadata editor -->
+<MetadataEditor bind:entries={metadataEntries} />
+
+<!-- Count badge -->
+<CountBadge count={items.length} label="items" />
+```
+
+See [STYLE_GUIDE.md](STYLE_GUIDE.md) for complete shared component patterns.
+
+### Using Services
+
+Services centralize business logic and API interactions:
+
+```javascript
+// Member data fetching
+import { fetchMember, fetchCardTransactions } from '../services/memberDataService.js';
+
+const member = await fetchMember(memberId);
+const transactions = await fetchCardTransactions(programId, memberId, cardId);
+
+// Entity CRUD operations
+import { createEntity, updateEntity, deleteEntity } from '../services/entityCrudService.js';
+
+await createEntity('programs', payload);
+await updateEntity('programs', id, payload);
+
+// Examination
+import { runEarningsExamination, createDefaultEarningsPayload } from '../services/examinationService.js';
+
+const payload = createDefaultEarningsPayload(memberId);
+const results = await runEarningsExamination(payload);
+
+// Reports
+import { fetchCardReports } from '../services/reportsService.js';
+
+const reports = await fetchCardReports(programId, memberId, cardId, { days: 30 });
 ```
 
 ### Styling with Tailwind + DaisyUI

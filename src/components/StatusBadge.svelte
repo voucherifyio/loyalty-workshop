@@ -7,6 +7,8 @@
     if (s === 'INACTIVE') return 'badge-error';
     if (s === 'DRAFT') return 'badge-warning';
     if (s === 'DELETED') return 'badge-ghost';
+    if (s === 'APPROVED') return 'badge-success';
+    if (s === 'REJECTED') return 'badge-error';
     return 'badge-neutral';
   }
 </script>

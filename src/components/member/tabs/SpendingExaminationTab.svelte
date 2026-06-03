@@ -1,7 +1,7 @@
 <script>
-  import { api } from '../../../api/client.js';
-  import { endpoints } from '../../../api/endpoints.js';
   import { toast } from '../../../services/toast.js';
+  import { downloadJson } from '../../../utils/downloadJson.js';
+  import * as examinationService from '../../../services/examinationService.js';
   import SpendingResults from '../../examine/SpendingResults.svelte';
   import SpendingConfigModal from '../../examine/SpendingConfigModal.svelte';
   import PurchaseRewardModal from '../../PurchaseRewardModal.svelte';
@@ -28,24 +28,15 @@
   });
 
   async function runDefaultScenario() {
-    const basicPayload = {
-      customer_identification: {
-        type: 'member_id',
-        member_id: memberId
-      }
-    };
-    await runExamination(basicPayload);
+    const payload = examinationService.createDefaultSpendingPayload(memberId);
+    await runExamination(payload);
   }
 
   async function runExamination(payload) {
     loading = true;
     try {
-      // Build the request payload - clean it up
-      const requestPayload = buildRequestPayload(payload);
       currentPayload = payload;
-      
-      const response = await api.post(endpoints.examine.rewards(), requestPayload);
-      results = response;
+      results = await examinationService.runSpendingExamination(payload);
       toast.success('Examination completed');
     } catch (error) {
       console.error('Examination failed:', error);
@@ -55,44 +46,9 @@
     }
   }
 
-  function buildRequestPayload(payload) {
-    const cleaned = JSON.parse(JSON.stringify(payload));
-    
-    // Remove empty metadata objects
-    function cleanMetadata(obj) {
-      if (obj && typeof obj === 'object') {
-        Object.keys(obj).forEach(key => {
-          if (key === 'metadata' && obj[key] && Object.keys(obj[key]).length === 0) {
-            delete obj[key];
-          } else if (typeof obj[key] === 'object') {
-            cleanMetadata(obj[key]);
-          }
-        });
-      }
-    }
-    cleanMetadata(cleaned);
-
-    // Remove customer/member if they only have empty metadata
-    if (cleaned.customer && Object.keys(cleaned.customer).length === 0) {
-      delete cleaned.customer;
-    }
-    if (cleaned.member && Object.keys(cleaned.member).length === 0) {
-      delete cleaned.member;
-    }
-
-    return cleaned;
-  }
-
   function handleExport() {
     if (results) {
-      const dataStr = JSON.stringify(results, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `spending-examination-${Date.now()}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
+      downloadJson(results, `spending-examination-${Date.now()}`);
       toast.success('Results exported');
     }
   }

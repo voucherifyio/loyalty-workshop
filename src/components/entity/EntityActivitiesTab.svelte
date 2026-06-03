@@ -1,5 +1,8 @@
 <script>
   import { api } from '../../api/client.js';
+  import { formatDate } from '../../utils/transactionFormatting.js';
+  import SectionHeading from '../shared/SectionHeading.svelte';
+  import ExpandableJsonRow from '../shared/ExpandableJsonRow.svelte';
 
   let {
     open = false,
@@ -12,11 +15,6 @@
   let error = $state(null);
   let expandedActivities = $state({});
   let loadedFor = $state(null);
-
-  function formatDate(timestamp) {
-    if (!timestamp) return 'N/A';
-    return new Date(timestamp).toLocaleString();
-  }
 
   function getTypeColor(type) {
     if (!type) return 'badge-neutral';
@@ -98,13 +96,11 @@
               </button>
             </td>
           </tr>
-          {#if expandedActivities[activity.id]}
-            <tr>
-              <td colspan="3" class="bg-base-300">
-                <pre class="text-[9px] p-2 overflow-x-auto whitespace-pre-wrap">{JSON.stringify(activity, null, 2)}</pre>
-              </td>
-            </tr>
-          {/if}
+          <ExpandableJsonRow
+            data={activity}
+            colspan={3}
+            expanded={expandedActivities[activity.id]}
+          />
         {/each}
       </tbody>
     </table>

@@ -1,4 +1,6 @@
 <script>
+  import MetadataEditor from '../shared/MetadataEditor.svelte';
+
   let {
     memberId = '',
     payload = $bindable({
@@ -100,6 +102,10 @@
     updateAllCustomerMetadata();
   }
 
+  function updateCustomerMetadataValue() {
+    updateAllCustomerMetadata();
+  }
+
   function updateAllCustomerMetadata() {
     const metadata = {};
     customerMetaEntries.forEach(entry => {
@@ -151,6 +157,10 @@
 
   function removeMemberMetadata(index) {
     memberMetaEntries = memberMetaEntries.filter((_, i) => i !== index);
+    updateAllMemberMetadata();
+  }
+
+  function updateMemberMetadataValue() {
     updateAllMemberMetadata();
   }
 
@@ -398,78 +408,26 @@
 
   <!-- Customer Metadata (Optional) -->
   <div class="bg-base-200/50 rounded-xl p-4">
-    <p class="text-sm font-semibold text-base-content/70 mb-3">Customer Metadata (Optional)</p>
     <p class="text-xs text-base-content/50 mb-3">Add metadata to simulate "what-if" scenarios (e.g., VIP status, customer tier)</p>
-    <div class="space-y-2">
-      {#each customerMetaEntries as entry, i}
-        <div class="flex gap-2">
-          <input
-            type="text"
-            class="input input-sm input-bordered flex-1"
-            bind:value={entry.key}
-            onchange={updateAllCustomerMetadata}
-            placeholder="Key (e.g., vip_tier)"
-          />
-          <input
-            type="text"
-            class="input input-sm input-bordered flex-1"
-            bind:value={entry.value}
-            onchange={updateAllCustomerMetadata}
-            placeholder="Value (e.g., platinum)"
-          />
-          <button
-            class="btn btn-sm btn-ghost btn-circle"
-            onclick={() => removeCustomerMetadata(i)}
-          >
-            ×
-          </button>
-        </div>
-      {/each}
-      <button class="btn btn-xs btn-outline" onclick={addCustomerMetadata}>
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-        </svg>
-        Add Customer Metadata
-      </button>
-    </div>
+    <MetadataEditor
+      bind:entries={customerMetaEntries}
+      label="Customer Metadata"
+      keyPlaceholder="Key (e.g., vip_tier)"
+      valuePlaceholder="Value (e.g., platinum)"
+      onChange={updateCustomerMetadataValue}
+    />
   </div>
 
   <!-- Member Metadata (Optional) -->
   <div class="bg-base-200/50 rounded-xl p-4">
-    <p class="text-sm font-semibold text-base-content/70 mb-3">Member Metadata (Optional)</p>
     <p class="text-xs text-base-content/50 mb-3">Add member-specific metadata (e.g., loyalty tier, membership level)</p>
-    <div class="space-y-2">
-      {#each memberMetaEntries as entry, i}
-        <div class="flex gap-2">
-          <input
-            type="text"
-            class="input input-sm input-bordered flex-1"
-            bind:value={entry.key}
-            onchange={updateAllMemberMetadata}
-            placeholder="Key (e.g., loyalty_tier)"
-          />
-          <input
-            type="text"
-            class="input input-sm input-bordered flex-1"
-            bind:value={entry.value}
-            onchange={updateAllMemberMetadata}
-            placeholder="Value (e.g., gold)"
-          />
-          <button
-            class="btn btn-sm btn-ghost btn-circle"
-            onclick={() => removeMemberMetadata(i)}
-          >
-            ×
-          </button>
-        </div>
-      {/each}
-      <button class="btn btn-xs btn-outline" onclick={addMemberMetadata}>
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-        </svg>
-        Add Member Metadata
-      </button>
-    </div>
+    <MetadataEditor
+      bind:entries={memberMetaEntries}
+      label="Member Metadata"
+      keyPlaceholder="Key (e.g., loyalty_tier)"
+      valuePlaceholder="Value (e.g., gold)"
+      onChange={updateMemberMetadataValue}
+    />
   </div>
 
   <!-- Summary -->

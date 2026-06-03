@@ -2,6 +2,11 @@
   import { api } from "../api/client.js";
   import { endpoints } from "../api/endpoints.js";
   import { toast } from "../services/toast.js";
+  import BaseModal from "./shared/BaseModal.svelte";
+  import ModalHeader from "./shared/ModalHeader.svelte";
+  import ModalFooter from "./shared/ModalFooter.svelte";
+  import AlertBanner from "./shared/AlertBanner.svelte";
+  import KeyValueEditor from "./shared/KeyValueEditor.svelte";
 
   let {
     open = false,
@@ -19,17 +24,6 @@
     eventType = "";
     metadataEntries = [{ key: '', value: '' }];
     error = null;
-  }
-
-  function addMetadataEntry() {
-    metadataEntries = [...metadataEntries, { key: '', value: '' }];
-  }
-
-  function removeMetadataEntry(index) {
-    metadataEntries = metadataEntries.filter((_, i) => i !== index);
-    if (metadataEntries.length === 0) {
-      metadataEntries = [{ key: '', value: '' }];
-    }
   }
 
   function isValid() {
@@ -55,8 +49,10 @@
       });
 
       const payload = {
-        customer: customerId,
-        type: eventType.trim(),
+        customer: {
+          id: customerId
+        },
+        event: eventType.trim(),
         metadata,
       };
 
@@ -83,179 +79,64 @@
       resetForm();
     }
   });
+
+  const subtitle = $derived(`Customer: ${customerId}`);
 </script>
 
-{#if open}
-  <dialog class="modal modal-open">
-    <div class="modal-box max-w-2xl">
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <h3 class="font-bold text-lg">Trigger Custom Event</h3>
-          <p class="text-sm text-base-content/60 mt-1">
-            Customer: <span class="font-mono text-xs">{customerId}</span>
-          </p>
+<BaseModal {open} size="md" onClose={handleClose}>
+  {#snippet children()}
+    <ModalHeader
+      title="Trigger Custom Event"
+      {subtitle}
+      onClose={handleClose}
+      disabled={submitting}
+    />
+
+    <div class="space-y-4">
+      <div class="card bg-base-200 p-4">
+        <div class="grid grid-cols-[120px_1fr] gap-x-4 gap-y-4 items-start">
+          <span class="text-sm text-base-content/70 pt-3">Event Type</span>
+          <input
+            type="text"
+            class="input input-bordered font-mono w-full"
+            bind:value={eventType}
+            placeholder="e.g., customer.custom_event_name"
+            disabled={submitting}
+          />
+
+          <span class="text-sm text-base-content/70 pt-2">Event Metadata</span>
+          <KeyValueEditor
+            bind:entries={metadataEntries}
+            disabled={submitting}
+            addButtonLabel="Add Metadata Entry"
+          />
         </div>
-        <button
-          class="btn btn-sm btn-circle btn-ghost"
-          onclick={handleClose}
-          disabled={submitting}
-          aria-label="Close modal"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            stroke="currentColor"
-            class="w-5 h-5"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
       </div>
 
-      <div class="space-y-4">
-        <!-- Event Configuration -->
-        <div class="card bg-base-200 p-4">
-          <div class="grid grid-cols-[120px_1fr] gap-x-4 gap-y-4 items-start">
-            <span class="text-sm text-base-content/70 pt-3">Event Type</span>
-            <input
-              type="text"
-              class="input input-bordered font-mono w-full"
-              bind:value={eventType}
-              placeholder="e.g., customer.custom_event_name"
-              disabled={submitting}
-            />
-
-            <span class="text-sm text-base-content/70 pt-2">Event Metadata</span>
-            <div class="space-y-2">
-              {#each metadataEntries as entry, i}
-                <div class="flex gap-2 items-center">
-                  <input
-                    type="text"
-                    class="input input-sm input-bordered flex-1 font-mono"
-                    bind:value={entry.key}
-                    placeholder="Key"
-                    disabled={submitting}
-                  />
-                  <input
-                    type="text"
-                    class="input input-sm input-bordered flex-1 font-mono"
-                    bind:value={entry.value}
-                    placeholder="Value"
-                    disabled={submitting}
-                  />
-                  <button
-                    class="btn btn-sm btn-ghost btn-square"
-                    onclick={() => removeMetadataEntry(i)}
-                    disabled={submitting}
-                    title="Remove entry"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke-width="1.5"
-                      stroke="currentColor"
-                      class="w-4 h-4"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              {/each}
-              <button
-                class="btn btn-sm btn-outline w-full"
-                onclick={addMetadataEntry}
-                disabled={submitting}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="1.5"
-                  stroke="currentColor"
-                  class="w-4 h-4"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M12 4.5v15m7.5-7.5h-15"
-                  />
-                </svg>
-                Add Metadata Entry
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="alert alert-info">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            class="stroke-current shrink-0 w-5 h-5"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+      <AlertBanner variant="info" title="Earning Rules Trigger">
+        {#snippet children()}
           <div class="text-sm">
-            <div class="font-semibold mb-1">Earning Rules Trigger</div>
-            <div>
-              Triggers custom event to activate earning rules configured for
-              this event type
-            </div>
+            Triggers custom event to activate earning rules configured for
+            this event type
           </div>
-        </div>
+        {/snippet}
+      </AlertBanner>
 
-        {#if error}
-          <div class="alert alert-error">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 shrink-0">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-            </svg>
-            <div class="flex-1">
-              <div class="font-bold text-sm">Error</div>
-              <pre class="text-xs mt-1">{error}</pre>
-            </div>
-          </div>
-        {/if}
-      </div>
-
-      <div class="modal-action">
-        <button
-          class="btn btn-ghost"
-          onclick={handleClose}
-          disabled={submitting}
-        >
-          Cancel
-        </button>
-        <button
-          class="btn btn-primary"
-          onclick={handleSubmit}
-          disabled={submitting || !isValid()}
-        >
-          {#if submitting}
-            <span class="loading loading-spinner loading-sm"></span>
-          {:else}
-            Trigger Event
-          {/if}
-        </button>
-      </div>
+      {#if error}
+        <AlertBanner variant="error" title="Error">
+          {#snippet children()}
+            <pre class="text-xs mt-1">{error}</pre>
+          {/snippet}
+        </AlertBanner>
+      {/if}
     </div>
-    <form method="dialog" class="modal-backdrop">
-      <button onclick={handleClose}>close</button>
-    </form>
-  </dialog>
-{/if}
+
+    <ModalFooter
+      confirmLabel="Trigger Event"
+      loading={submitting}
+      confirmDisabled={!isValid()}
+      onCancel={handleClose}
+      onConfirm={handleSubmit}
+    />
+  {/snippet}
+</BaseModal>

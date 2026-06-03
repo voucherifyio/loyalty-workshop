@@ -76,6 +76,7 @@
     fieldErrors = {};
     updatedSomething = false;
     formData = {};
+    displayData = {};
     loadedFor = entityId;
 
     let data = entityData;
@@ -99,7 +100,18 @@
     for (const fieldName of Object.keys(properties)) {
       // Skip metadata fields (fields starting with _)
       if (fieldName.startsWith('_')) continue;
-      formData[fieldName] = data[fieldName] !== undefined ? data[fieldName] : '';
+      const value = data[fieldName] !== undefined ? data[fieldName] : '';
+      formData[fieldName] = value;
+      // Initialize display data
+      const fieldConfig = properties[fieldName];
+      if (fieldConfig?.type === 'datetime') {
+        // For datetime fields, convert ISO to datetime-local format
+        displayData[fieldName] = toDateTimeLocalValue(value);
+      } else if (typeof value === 'object' && value !== null) {
+        displayData[fieldName] = JSON.stringify(value, null, 2);
+      } else {
+        displayData[fieldName] = String(value || '');
+      }
     }
   }
 
@@ -111,35 +123,12 @@
     if (!open) loadedFor = null;
   });
 
-  // Convert formData to display strings for textareas
+  // Display state for textarea values (what user sees/types)
+  // Initialized in init(), then maintained manually in handleInput
   let displayData = $state({});
-  
-  $effect(() => {
-    // When formData changes, update display strings
-    const newDisplay = {};
-    for (const [key, value] of Object.entries(formData)) {
-      if (typeof value === 'object' && value !== null) {
-        newDisplay[key] = JSON.stringify(value, null, 2);
-      } else {
-        newDisplay[key] = String(value || '');
-      }
-    }
-    displayData = newDisplay;
-  });
 
   function handleInput(fieldName, newValue) {
-    // Try to parse as JSON, fallback to string
-    try {
-      const trimmed = newValue.trim();
-      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-        formData[fieldName] = JSON.parse(newValue);
-      } else {
-        formData[fieldName] = newValue;
-      }
-    } catch {
-      // Invalid JSON, keep as string
-      formData[fieldName] = newValue;
-    }
+    // Update display data immediately
     displayData[fieldName] = newValue;
     
     // Clear field error when user edits
@@ -147,6 +136,41 @@
       const newErrors = { ...fieldErrors };
       delete newErrors[fieldName];
       fieldErrors = newErrors;
+    }
+    
+    const trimmed = newValue.trim();
+    
+    // Handle empty values
+    if (!trimmed) {
+      formData[fieldName] = '';
+      return;
+    }
+    
+    // Check if this field is defined as JSON type in entity properties
+    const properties = getEntityProperties(entityType);
+    const fieldConfig = properties[fieldName];
+    const isJsonField = fieldConfig?.type === 'json';
+    
+    // For JSON fields, try to parse
+    if (isJsonField) {
+      try {
+        formData[fieldName] = JSON.parse(newValue);
+      } catch (err) {
+        // Invalid JSON - could be mid-typing, so we'll keep it as string temporarily
+        // The payload builder will exclude it if it's still invalid when submitting
+        formData[fieldName] = newValue;
+      }
+    } else {
+      // For non-JSON fields
+      try {
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          formData[fieldName] = JSON.parse(newValue);
+        } else {
+          formData[fieldName] = newValue;
+        }
+      } catch {
+        formData[fieldName] = newValue;
+      }
     }
   }
 
@@ -218,7 +242,29 @@
     submitting = true;
 
     try {
-      const payload = buildUpdatePayload(entityType, entityState, formData, null, parentStatus);
+      // Parse any JSON fields that are still strings before building payload
+      const properties = getEntityProperties(entityType);
+      const jsonFields = Object.keys(properties).filter(key => properties[key]?.type === 'json');
+      const parsedFormData = { ...formData };
+      
+      for (const fieldName of jsonFields) {
+        if (fieldName in parsedFormData) {
+          const value = parsedFormData[fieldName];
+          // If it's a string, try to parse it
+          if (typeof value === 'string' && value.trim()) {
+            try {
+              parsedFormData[fieldName] = JSON.parse(value);
+            } catch (err) {
+              // Invalid JSON - show error and don't submit
+              error = `Invalid JSON in field "${fieldName}": ${err.message}`;
+              fieldErrors[fieldName] = `Invalid JSON: ${err.message}`;
+              return;
+            }
+          }
+        }
+      }
+      
+      const payload = buildUpdatePayload(entityType, entityState, parsedFormData, null, parentStatus);
       const response = await api.put(updateEndpoint, payload);
       result = { success: true, data: response };
       updatedSomething = true;
@@ -240,7 +286,18 @@
     for (const fieldName of Object.keys(properties)) {
       // Skip metadata fields (fields starting with _)
       if (fieldName.startsWith('_')) continue;
-      formData[fieldName] = data[fieldName] !== undefined ? data[fieldName] : '';
+      const value = data[fieldName] !== undefined ? data[fieldName] : '';
+      formData[fieldName] = value;
+      // Initialize display data
+      const fieldConfig = properties[fieldName];
+      if (fieldConfig?.type === 'datetime') {
+        // For datetime fields, convert ISO to datetime-local format
+        displayData[fieldName] = toDateTimeLocalValue(value);
+      } else if (typeof value === 'object' && value !== null) {
+        displayData[fieldName] = JSON.stringify(value, null, 2);
+      } else {
+        displayData[fieldName] = String(value || '');
+      }
     }
     
     result = null;
@@ -318,7 +375,7 @@
           {@const hasError = fieldErrors[fieldName]}
           {@const isRewardCosts = entityType === 'rewards' && fieldName === 'costs'}
           {@const isEarningRuleEarnings = entityType === 'earningRules' && fieldName === 'earnings'}
-          {@const isDateTimeField = fieldName === 'start_date' || fieldName === 'end_date'}
+          {@const isDateTimeField = fieldConfig?.type === 'datetime'}
           
           <span class="text-base-content/50 pt-2 {!editable ? 'opacity-50' : ''} {hasError ? 'text-error' : ''}">{fieldName}</span>
           

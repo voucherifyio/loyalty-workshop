@@ -199,18 +199,71 @@ graph TD
     EntityColumn --> CreateEntityDrawer[Create Entity Drawer]
     EntityColumn --> EntityDrawer[Entity Drawer]
     
+    WalletsSection --> TierStructureRow[Tier Structure Row]
     WalletsSection --> CardDefinitions[Card Definitions]
-    WalletsSection --> TierStructures[Tier Structures]
     
     PointsSection --> EarningRules[Earning Rules]
+    PointsSection --> EarningRulesEarningsEditor[Earnings Editor]
+    EarningRulesEarningsEditor --> EarningEffectEditor[Effect Editor]
     PointsSection --> Incentives[Incentives]
     PointsSection --> Rewards[Rewards]
     
-    MembersDrawer --> MemberDetailModal[Member Detail Modal]
-    MemberDetailModal --> MemberTabs[Member Tabs]
+    MembersDrawer --> MemberDetailPage[Member Detail Page]
+    MemberDetailPage --> MemberTabs[Member Tabs]
     MemberTabs --> OverviewTab[Overview Tab]
-    MemberTabs --> TransactionsTab[Transactions Tab]
+    MemberTabs --> ActivitiesTab[Activities Tab]
     MemberTabs --> TimelineTab[Timeline Tab]
+    MemberTabs --> EarningsExaminationTab[Earnings Examination Tab]
+    MemberTabs --> SpendingExaminationTab[Spending Examination Tab]
+    MemberTabs --> RawJsonTab[Raw JSON Tab]
+    
+    OverviewTab --> CardSummaryPills[Card Summary Pills]
+    OverviewTab --> BalanceStats[Balance Stats]
+    OverviewTab --> TierProgressCard[Tier Progress Card]
+    OverviewTab --> PointsBucketsTable[Points Buckets Table]
+    OverviewTab --> CardReports[Card Reports]
+    
+    TimelineTab --> TransactionFilterBar[Transaction Filter Bar]
+    
+    EarningsExaminationTab --> ExamineConfigModal[Examine Config Modal]
+    EarningsExaminationTab --> ExaminePayloadBuilder[Examine Payload Builder]
+    EarningsExaminationTab --> ExaminationResults[Examination Results]
+    
+    SpendingExaminationTab --> SpendingConfigModal[Spending Config Modal]
+    SpendingExaminationTab --> SpendingPayloadBuilder[Spending Payload Builder]
+    SpendingExaminationTab --> SpendingResults[Spending Results]
+    SpendingResults --> RewardEstimationRow[Reward Estimation Row]
+    
+    subgraph Shared[Shared Components]
+        JsonDisplay[JsonDisplay]
+        LoadingState[LoadingState]
+        EmptyState[EmptyState]
+        FormSectionCard[FormSectionCard]
+        DateTimeField[DateTimeField]
+        MetadataEditor[MetadataEditor]
+        CountBadge[CountBadge]
+        BaseModal[BaseModal]
+        ModalHeader[ModalHeader]
+        ModalFooter[ModalFooter]
+        ExpandableJsonRow[ExpandableJsonRow]
+    end
+    
+    subgraph Services[Services Layer]
+        memberDataService[memberDataService]
+        entityCrudService[entityCrudService]
+        examinationService[examinationService]
+        reportsService[reportsService]
+        tierLoaderService[tierLoaderService]
+        cardActionsService[cardActionsService]
+    end
+    
+    MemberTabs -.uses.-> Shared
+    EntityDrawer -.uses.-> Shared
+    CreateEntityDrawer -.uses.-> Shared
+    MemberDetailPage -.uses.-> Services
+    EarningsExaminationTab -.uses.-> Services
+    SpendingExaminationTab -.uses.-> Services
+    CardReports -.uses.-> Services
 ```
 
 ### Component Categories
@@ -220,6 +273,12 @@ graph TD
 - `TopBar.svelte` - Navigation and settings access
 - `Designer.svelte` - Main view coordinator
 
+#### Shared Components (`src/components/shared/`)
+- **Display Components**: `JsonDisplay`, `LoadingState`, `EmptyState`, `CountBadge`, `ExpandableJsonRow`
+- **Form Components**: `FormField`, `FormSectionCard`, `DateTimeField`, `ComplexFieldButton`, `MetadataEditor`, `KeyValueEditor`
+- **Modal Components**: `BaseModal`, `ModalHeader`, `ModalFooter`
+- **Layout Components**: `SectionHeading`, `AlertBanner`
+
 #### Entity Management Components
 - `EntityColumn.svelte` - Scrollable entity list
 - `EntityCard.svelte` - Individual entity display card
@@ -228,16 +287,34 @@ graph TD
 
 #### Member Management Components
 - `MembersDrawer.svelte` - Member list sidebar
-- `MemberDetailModal.svelte` - Full-screen member detail
-- `MemberCardSidebar.svelte` - Card list with balances
-- `MemberActionToolbar.svelte` - Action buttons (purchase, pay, adjust)
+- `MemberDetailPage.svelte` - Full member detail view with tabs
+- `PointsBucketsTable.svelte` - Pending/expiring points display
+- `TierProgressCard.svelte` - Tier progress visualization
+- `TransactionFilterBar.svelte` - Transaction filtering UI
+- `BalanceStats.svelte` - Balance statistics display
+- `CardSummaryPills.svelte` - Card summary pills
+
+#### Examination Components
+- `ExamineConfigModal.svelte` - Earnings examination configuration
+- `SpendingConfigModal.svelte` - Spending examination configuration
+- `ExaminePayloadBuilder.svelte` - Earnings payload builder
+- `SpendingPayloadBuilder.svelte` - Spending payload builder
+- `ExaminationResults.svelte` - Earnings results display
+- `SpendingResults.svelte` - Spending results display
+- `RewardEstimationRow.svelte` - Reward estimation display
+
+#### Earning Components
+- `EarningRulesEarningsEditor.svelte` - Earnings configuration
+- `EarningEffectEditor.svelte` - Effect configuration for earning rules
+
+#### Wallet Components
+- `TierStructureRow.svelte` - Tier structure display with progress
 
 #### Chart Components (LayerCake)
 - `StackedBars.svelte` - Stacked bar chart
 - `MultiLine.svelte` - Multi-series line chart
 - `AxisX.svelte` - X-axis component
 - `AxisY.svelte` - Y-axis component
-- `ChartTooltip.svelte` - Hover tooltip
 - `HoverLayer.svelte` - Mouse interaction layer
 
 #### Utility Components
@@ -344,6 +421,240 @@ class MyStore {
 }
 
 export const myStore = new MyStore();
+```
+
+## Service Layer
+
+### Service Architecture
+
+Services centralize business logic and API interactions, providing a clean separation between data/logic and UI.
+
+```mermaid
+graph TD
+    Components[Svelte Components] --> Services[Service Layer]
+    Services --> ApiClient[API Client]
+    ApiClient --> Backend[Backend API]
+    
+    Services --> memberDataService[memberDataService.js]
+    Services --> entityCrudService[entityCrudService.js]
+    Services --> examinationService[examinationService.js]
+    Services --> reportsService[reportsService.js]
+    Services --> tierLoaderService[tierLoaderService.js]
+    Services --> cardActionsService[cardActionsService.js]
+    Services --> designerStoreCoordinator[designerStoreCoordinator.js]
+```
+
+### Available Services
+
+#### Member Data Service (`memberDataService.js`)
+**Purpose**: Centralize all member-related data fetching  
+**Key Functions**:
+- `fetchMember(memberId)` - Get member details
+- `fetchCardOverview(programId, memberId, cardId)` - Get pending/expiring points
+- `fetchMemberActivities(memberId)` - Get member activities
+- `fetchCardActivities(programId, memberId, cardId)` - Get card activities
+- `fetchCardTransactions(programId, memberId, cardId)` - Get merged card transactions
+- `fetchMemberTransactions(memberId)` - Get merged member transactions
+
+#### Entity CRUD Service (`entityCrudService.js`)
+**Purpose**: Unified CRUD operations for all entity types  
+**Key Functions**:
+- `createEntity(entityType, payload)` - Create any entity
+- `updateEntity(entityType, id, payload)` - Update any entity
+- `deleteEntity(entityType, id)` - Delete any entity
+- `activateEntity(entityType, id)` - Activate any entity
+- `deactivateEntity(entityType, id)` - Deactivate any entity
+
+#### Examination Service (`examinationService.js`)
+**Purpose**: Centralize examination logic for earnings and spending  
+**Key Functions**:
+- `runEarningsExamination(payload)` - Execute earnings examination
+- `runSpendingExamination(payload)` - Execute spending examination
+- `createDefaultEarningsPayload(memberId)` - Generate default earnings scenario
+- `createDefaultSpendingPayload(memberId)` - Generate default spending scenario
+- `buildExaminationPayload(payload, handleSpecificTrigger)` - Clean and prepare payloads
+
+#### Reports Service (`reportsService.js`)
+**Purpose**: Centralize member card reports API calls  
+**Key Functions**:
+- `fetchCardReports(programId, memberId, cardId, params)` - Fetch daily reports
+- `calculateDateRange(days)` - Calculate ISO date ranges
+
+#### Tier Loader Service (`tierLoaderService.js`)
+**Purpose**: Tier structure loading and caching  
+**Key Functions**:
+- `loadTiersForProgram(programId)` - Load tiers for a program
+
+#### Card Actions Service (`cardActionsService.js`)
+**Purpose**: Card-specific actions  
+**Key Functions**:
+- `activatePendingBucket(programId, memberId, cardId, bucketId)` - Activate pending points
+- `cancelBucket(programId, memberId, cardId, bucketId)` - Cancel bucket
+- `expireBucket(programId, memberId, cardId, bucketId)` - Expire bucket
+
+#### Designer Store Coordinator (`designerStoreCoordinator.js`)
+**Purpose**: Coordinate designer store state management  
+**Key Functions**:
+- Coordinates selection, assignment, and pagination stores
+- Manages complex state transitions
+
+### Service Pattern
+
+```javascript
+// Service pattern example
+import { api } from '../api/client.js';
+import { endpoints } from '../api/endpoints.js';
+
+export async function fetchMember(memberId) {
+  const response = await api.get(endpoints.members.get(memberId));
+  return response.data || response;
+}
+
+export async function createEntity(entityType, payload) {
+  const endpoint = endpoints[entityType].create();
+  const response = await api.post(endpoint, payload);
+  return response.data || response;
+}
+```
+
+### Using Services in Components
+
+```svelte
+<script>
+  import { fetchMember, fetchCardTransactions } from '../services/memberDataService.js';
+  import { createEntity } from '../services/entityCrudService.js';
+  
+  let loading = $state(false);
+  let member = $state(null);
+  
+  async function loadData() {
+    loading = true;
+    try {
+      member = await fetchMember(memberId);
+      const transactions = await fetchCardTransactions(programId, memberId, cardId);
+      // Use data...
+    } catch (err) {
+      toast.error('Failed to load data');
+    } finally {
+      loading = false;
+    }
+  }
+</script>
+```
+
+## Utilities Layer
+
+### Utility Architecture
+
+Utilities provide reusable helper functions for data formatting, transformation, and common operations.
+
+```mermaid
+graph LR
+    Components[Components] --> Utilities[Utility Functions]
+    Services[Services] --> Utilities
+    
+    Utilities --> activityFormatting[activityFormatting.js]
+    Utilities --> transactionFormatting[transactionFormatting.js]
+    Utilities --> tierProgress[tierProgress.js]
+    Utilities --> reportChartConfig[reportChartConfig.js]
+    Utilities --> reportDataTransforms[reportDataTransforms.js]
+    Utilities --> orderPayload[orderPayload.js]
+    Utilities --> stateAwarePayload[stateAwarePayload.js]
+    Utilities --> downloadJson[downloadJson.js]
+```
+
+### Available Utilities
+
+#### Activity Formatting (`activityFormatting.js`)
+**Purpose**: Centralized activity type badge colors  
+**Key Functions**:
+- `getActivityTypeColor(type)` - Returns DaisyUI badge class for activity types
+- Consistent color coding: CREATE (success), UPDATE (warning), DELETE (error), etc.
+
+#### Transaction Formatting (`transactionFormatting.js`)
+**Purpose**: Format transaction data for display  
+**Key Functions**:
+- `formatTransactionType(type)` - Format transaction type for display
+- `isNegativeTransaction(type)` - Check if transaction is negative
+
+#### Tier Progress (`tierProgress.js`)
+**Purpose**: Calculate tier progress and statistics  
+**Key Functions**:
+- `calculateTierProgress(currentPoints, tiers)` - Calculate tier progress percentage
+- `getCurrentTier(currentPoints, tiers)` - Get current tier based on points
+- `getNextTier(currentPoints, tiers)` - Get next tier and points needed
+
+#### Report Chart Config (`reportChartConfig.js`)
+**Purpose**: Chart configuration constants for reports  
+**Exports**:
+- `RANGE_OPTIONS`, `RESOLUTION_OPTIONS` - Control options
+- `POS_KEYS`, `NEG_KEYS` - Point flow categories
+- `FLOW_COLORS`, `FLOW_LABELS` - Color/label mappings
+- `PENDING_SERIES` - Pending points series config
+
+#### Report Data Transforms (`reportDataTransforms.js`)
+**Purpose**: Data transformation utilities for reports  
+**Key Functions**:
+- Date utilities: `rawDate`, `fmtISO`, `parseLocal`, `generateDateRange`
+- Gap filling: `fillChartGaps`
+- Flow chart prep: `computeFlowSegments`, `computeFlowYDomain`
+- Pending chart prep: `computePendingYDomain`, `hasPendingData`
+- KPI calculation: `calculateKPIs`
+- Formatters: `fmtDateTick`, `fmtTooltipDate`, `fmtYTick`, `computeXTickMod`
+
+#### Order Payload (`orderPayload.js`)
+**Purpose**: Build order payloads for API calls  
+**Key Functions**:
+- `buildOrderPayload(data)` - Build order payload from form data
+- `validateOrderPayload(payload)` - Validate order payload
+
+#### State-Aware Payload (`stateAwarePayload.js`)
+**Purpose**: Build update payloads that only include changed fields  
+**Key Functions**:
+- `buildUpdatePayload(currentData)` - Build minimal update payload
+
+#### Download JSON (`downloadJson.js`)
+**Purpose**: Download JSON data as file  
+**Key Functions**:
+- `downloadAsJson(data, filename)` - Trigger browser download of JSON
+
+### Utility Pattern
+
+```javascript
+// Utility pattern example
+export function getActivityTypeColor(type) {
+  const colorMap = {
+    'CREATE': 'badge-success',
+    'UPDATE': 'badge-warning',
+    'DELETE': 'badge-error',
+    'ACTIVATE': 'badge-info',
+    'DEACTIVATE': 'badge-ghost'
+  };
+  return colorMap[type] || 'badge-ghost';
+}
+```
+
+### Using Utilities in Components
+
+```svelte
+<script>
+  import { getActivityTypeColor } from '../utils/activityFormatting.js';
+  import { calculateTierProgress, getCurrentTier } from '../utils/tierProgress.js';
+  import { downloadAsJson } from '../utils/downloadJson.js';
+  
+  const badgeClass = getActivityTypeColor(activity.type);
+  const progress = calculateTierProgress(points, tiers);
+  const currentTier = getCurrentTier(points, tiers);
+  
+  function handleExport() {
+    downloadAsJson(memberData, 'member-data.json');
+  }
+</script>
+
+<span class="badge {badgeClass}">{activity.type}</span>
+<div class="progress">
+  <div style="width: {progress}%"></div>
+</div>
 ```
 
 ## API Integration
@@ -541,6 +852,40 @@ Components are eagerly loaded since the app has a single view. Code splitting ha
 - **Assets**: Cache-busted with content hashes in filenames
 - **API responses**: No caching, always fetch latest data
 - **localStorage**: Persists theme and credentials indefinitely
+
+## Code Organization Improvements
+
+### Refactoring Impact
+
+The codebase has undergone comprehensive refactoring to improve maintainability:
+
+**Shared Components**: 16 reusable components extracted
+- Display: `JsonDisplay`, `LoadingState`, `EmptyState`, `CountBadge`, `ExpandableJsonRow`
+- Form: `FormField`, `FormSectionCard`, `DateTimeField`, `ComplexFieldButton`, `MetadataEditor`, `KeyValueEditor`
+- Modal: `BaseModal`, `ModalHeader`, `ModalFooter`
+- Layout: `SectionHeading`, `AlertBanner`
+
+**Service Layer**: 8 service modules created
+- `memberDataService.js` - Member data fetching
+- `entityCrudService.js` - Unified CRUD operations
+- `examinationService.js` - Examination logic
+- `reportsService.js` - Card reports API
+- `tierLoaderService.js` - Tier structure loading
+- `cardActionsService.js` - Card-specific actions
+- `designerStoreCoordinator.js` - Designer state coordination
+- `toast.js` - Toast notifications
+
+**Utilities**: 8 utility modules
+- `activityFormatting.js` - Activity type colors
+- `transactionFormatting.js` - Transaction formatting
+- `tierProgress.js` - Tier progress calculations
+- `reportChartConfig.js` - Chart configuration
+- `reportDataTransforms.js` - Data transformations
+- `orderPayload.js` - Order payload building
+- `stateAwarePayload.js` - State-aware updates
+- `downloadJson.js` - JSON download helper
+
+**Impact**: ~2,250 lines removed/simplified, improved consistency, better maintainability
 
 ## Security Architecture
 

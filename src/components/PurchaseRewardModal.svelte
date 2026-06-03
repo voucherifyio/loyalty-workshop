@@ -2,13 +2,17 @@
   import { api } from '../api/client.js';
   import { endpoints } from '../api/endpoints.js';
   import { toast } from '../services/toast.js';
+  import BaseModal from './shared/BaseModal.svelte';
+  import ModalHeader from './shared/ModalHeader.svelte';
+  import AlertBanner from './shared/AlertBanner.svelte';
+  import JsonDisplay from './shared/JsonDisplay.svelte';
 
   let {
     open = false,
     card = null,
     programId = '',
     memberId = '',
-    rewardId = null, // Optional: pre-select a specific reward
+    rewardId = null,
     onClose = () => {},
     onSuccess = () => {}
   } = $props();
@@ -38,8 +42,6 @@
 
     loadingRewards = true;
     try {
-      // programs.rewards returns reward assignment records (VLProgramRewardDTO)
-      // each item has reward_id, costs, stock, redeemed — no name or status
       const response = await api.get(endpoints.programs.rewards(programId));
       rewards = response.data || [];
     } catch {
@@ -87,7 +89,6 @@
     if (open && programId) {
       reset();
       loadRewards();
-      // Pre-select reward if provided
       if (rewardId) {
         selectedRewardId = rewardId;
       }
@@ -96,183 +97,153 @@
 
   const isPreselected = $derived(rewardId != null);
   const selectedReward = $derived(rewards.find(r => r.reward_id === selectedRewardId) || null);
+  const subtitle = $derived(
+    card
+      ? `Card: ${card.code || card.id}${card.balance ? ` · Balance: ${card.balance.points} pts` : ''}`
+      : ''
+  );
+  const confirmLabel = $derived(dryRun ? 'Simulate' : 'Purchase');
 </script>
 
-{#if open}
-  <dialog class="modal modal-open">
-    <div class="modal-box max-w-2xl">
-      <!-- Header with close button -->
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <h3 class="font-bold text-lg">Purchase Reward</h3>
-          {#if card}
-            <p class="text-sm text-base-content/60 mt-1">
-              Card: <span class="font-mono text-xs">{card.code || card.id}</span>
-              {#if card.balance}
-                · Balance: <span class="font-bold">{card.balance.points} pts</span>
-              {/if}
-            </p>
-          {/if}
-        </div>
-        <button
-          class="btn btn-sm btn-circle btn-ghost"
-          onclick={handleClose}
-          disabled={submitting}
-          aria-label="Close modal"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
+<BaseModal {open} size="md" onClose={handleClose}>
+  {#snippet children()}
+    <ModalHeader
+      title="Purchase Reward"
+      {subtitle}
+      onClose={handleClose}
+      disabled={submitting}
+    />
 
-      {#if !result}
-        <div class="space-y-4">
-          <!-- Reward Selection Card -->
-          <div class="card bg-base-200 p-4">
-            <label class="label" for="reward-select">
-              <span class="label-text font-medium">Select Reward</span>
-              {#if isPreselected}
-                <span class="badge badge-info badge-sm">Pre-selected</span>
-              {/if}
-            </label>
-            {#if loadingRewards}
-              <div class="flex items-center gap-2 p-2">
-                <span class="loading loading-spinner loading-sm"></span>
-                <span class="text-sm">Loading rewards...</span>
-              </div>
-            {:else if rewards.length === 0}
-              <div class="alert alert-warning">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 shrink-0">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                </svg>
-                <div class="flex-1">
-                  <span class="text-sm">No rewards assigned to this program.</span>
-                </div>
-              </div>
-            {:else}
-              <select
-                id="reward-select"
-                class="select select-bordered select-sm"
-                bind:value={selectedRewardId}
-                disabled={isPreselected}
-              >
-                <option value="">-- Select a reward --</option>
-                {#each rewards as reward}
-                  <option value={reward.reward_id}>{reward.reward_id}</option>
-                {/each}
-              </select>
+    {#if !result}
+      <div class="space-y-4">
+        <!-- Reward Selection Card -->
+        <div class="card bg-base-200 p-4">
+          <label class="label" for="reward-select">
+            <span class="label-text font-medium">Select Reward</span>
+            {#if isPreselected}
+              <span class="badge badge-info badge-sm">Pre-selected</span>
             {/if}
-          </div>
-
-          <!-- Reward Details Card -->
-          {#if selectedReward}
-            <div class="card bg-base-200 p-4">
-              <div class="space-y-2 text-xs">
-                <div><strong>Reward ID:</strong> <span class="font-mono">{selectedReward.reward_id}</span></div>
-                
-                {#if selectedReward.stock}
-                  <div>
-                    <strong>Stock:</strong>
-                    {#if selectedReward.stock.type === 'UNLIMITED'}
-                      <span class="badge badge-success badge-xs ml-1">Unlimited</span>
-                    {:else if selectedReward.stock.type === 'LIMITED'}
-                      <span class="badge badge-warning badge-xs ml-1">
-                        Limited: {selectedReward.stock.limited?.quantity ?? 0} available
-                      </span>
-                    {/if}
-                    {#if selectedReward.redeemed != null}
-                      <span class="ml-2 text-base-content/50">· Redeemed: {selectedReward.redeemed}</span>
-                    {/if}
-                  </div>
-                {/if}
-                
-                {#if selectedReward.costs?.length}
-                  <div><strong>Costs:</strong> <pre class="text-[10px] bg-base-300 p-1 rounded mt-1 overflow-x-auto">{JSON.stringify(selectedReward.costs, null, 2)}</pre></div>
-                {/if}
-              </div>
-            </div>
-          {/if}
-
-          <!-- Dry Run Card -->
-          <div class="card bg-base-200 p-4">
-            <label class="label cursor-pointer justify-start gap-3">
-              <input
-                type="checkbox"
-                class="toggle toggle-sm toggle-primary"
-                bind:checked={dryRun}
-              />
-              <div>
-                <span class="label-text font-medium">Dry Run</span>
-                <p class="text-[10px] text-base-content/60">Simulate the purchase without creating a real transaction</p>
-              </div>
-            </label>
-          </div>
-
-          {#if error}
-            <div class="alert alert-error">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 shrink-0">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-              </svg>
-              <div class="flex-1">
-                <div class="font-bold text-sm">Error</div>
-                <pre class="text-xs mt-1">{error}</pre>
-              </div>
-            </div>
-          {/if}
-        </div>
-      {:else}
-        <!-- Result -->
-        <div class="space-y-3">
-          <div class="alert {dryRun ? 'alert-info' : 'alert-success'}">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 shrink-0">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div class="flex-1">
-              <div class="font-bold text-sm">{dryRun ? 'Dry Run Result' : 'Purchase Initiated'}</div>
-              {#if !dryRun}
-                <p class="text-xs mt-1">The reward purchase is being processed asynchronously. Check the PURCHASES column for status updates.</p>
-              {/if}
-            </div>
-          </div>
-          <div>
-            <div class="text-xs font-bold mb-1">Response:</div>
-            <pre class="text-[10px] bg-base-200 p-3 rounded overflow-x-auto max-h-60">{JSON.stringify(result, null, 2)}</pre>
-          </div>
-          {#if dryRun}
-            <button
-              class="btn btn-sm btn-ghost w-full"
-              onclick={() => { result = null; dryRun = false; }}
-            >
-              Proceed with real purchase
-            </button>
-          {/if}
-        </div>
-      {/if}
-
-      <div class="modal-action">
-        <button class="btn btn-ghost" onclick={handleClose} disabled={submitting}>
-          {result && !dryRun ? 'Close' : 'Cancel'}
-        </button>
-        {#if !result}
-          <button
-            class="btn btn-primary"
-            onclick={handleSubmit}
-            disabled={submitting || !selectedRewardId}
-          >
-            {#if submitting}
+          </label>
+          {#if loadingRewards}
+            <div class="flex items-center gap-2 p-2">
               <span class="loading loading-spinner loading-sm"></span>
-            {:else if dryRun}
-              Simulate
-            {:else}
-              Purchase
+              <span class="text-sm">Loading rewards...</span>
+            </div>
+          {:else if rewards.length === 0}
+            <AlertBanner variant="warning">
+              {#snippet children()}
+                <span class="text-sm">No rewards assigned to this program.</span>
+              {/snippet}
+            </AlertBanner>
+          {:else}
+            <select
+              id="reward-select"
+              class="select select-bordered select-sm"
+              bind:value={selectedRewardId}
+              disabled={isPreselected}
+            >
+              <option value="">-- Select a reward --</option>
+              {#each rewards as reward}
+                <option value={reward.reward_id}>{reward.reward_id}</option>
+              {/each}
+            </select>
+          {/if}
+        </div>
+
+        <!-- Reward Details Card -->
+        {#if selectedReward}
+          <div class="card bg-base-200 p-4">
+            <div class="space-y-2 text-xs">
+              <div><strong>Reward ID:</strong> <span class="font-mono">{selectedReward.reward_id}</span></div>
+              
+              {#if selectedReward.stock}
+                <div>
+                  <strong>Stock:</strong>
+                  {#if selectedReward.stock.type === 'UNLIMITED'}
+                    <span class="badge badge-success badge-xs ml-1">Unlimited</span>
+                  {:else if selectedReward.stock.type === 'LIMITED'}
+                    <span class="badge badge-warning badge-xs ml-1">
+                      Limited: {selectedReward.stock.limited?.quantity ?? 0} available
+                    </span>
+                  {/if}
+                  {#if selectedReward.redeemed != null}
+                    <span class="ml-2 text-base-content/50">· Redeemed: {selectedReward.redeemed}</span>
+                  {/if}
+                </div>
+              {/if}
+              
+              {#if selectedReward.costs?.length}
+                <div><strong>Costs:</strong> <JsonDisplay data={selectedReward.costs} size="xs" maxHeight="max-h-40" /></div>
+              {/if}
+            </div>
+          </div>
+        {/if}
+
+        <!-- Dry Run Card -->
+        <div class="card bg-base-200 p-4">
+          <label class="label cursor-pointer justify-start gap-3">
+            <input
+              type="checkbox"
+              class="toggle toggle-sm toggle-primary"
+              bind:checked={dryRun}
+            />
+            <div>
+              <span class="label-text font-medium">Dry Run</span>
+              <p class="text-[10px] text-base-content/60">Simulate the purchase without creating a real transaction</p>
+            </div>
+          </label>
+        </div>
+
+        {#if error}
+          <AlertBanner variant="error" title="Error">
+            {#snippet children()}
+              <pre class="text-xs mt-1">{error}</pre>
+            {/snippet}
+          </AlertBanner>
+        {/if}
+      </div>
+    {:else}
+      <!-- Result -->
+      <div class="space-y-3">
+        <AlertBanner variant={dryRun ? 'info' : 'success'} title={dryRun ? 'Dry Run Result' : 'Purchase Initiated'}>
+          {#snippet children()}
+            {#if !dryRun}
+              <p class="text-xs">The reward purchase is being processed asynchronously. Check the PURCHASES column for status updates.</p>
             {/if}
+          {/snippet}
+        </AlertBanner>
+        <div>
+          <div class="text-xs font-bold mb-1">Response:</div>
+          <JsonDisplay data={result} />
+        </div>
+        {#if dryRun}
+          <button
+            class="btn btn-sm btn-ghost w-full"
+            onclick={() => { result = null; dryRun = false; }}
+          >
+            Proceed with real purchase
           </button>
         {/if}
       </div>
+    {/if}
+
+    <div class="modal-action">
+      <button class="btn btn-ghost" onclick={handleClose} disabled={submitting}>
+        {result && !dryRun ? 'Close' : 'Cancel'}
+      </button>
+      {#if !result}
+        <button
+          class="btn btn-primary"
+          onclick={handleSubmit}
+          disabled={submitting || !selectedRewardId}
+        >
+          {#if submitting}
+            <span class="loading loading-spinner loading-sm"></span>
+          {:else}
+            {confirmLabel}
+          {/if}
+        </button>
+      {/if}
     </div>
-    <form method="dialog" class="modal-backdrop">
-      <button onclick={handleClose}>close</button>
-    </form>
-  </dialog>
-{/if}
+  {/snippet}
+</BaseModal>

@@ -1,6 +1,6 @@
 <script>
-  import { api } from '../api/client.js';
-  import { endpoints } from '../api/endpoints.js';
+  import * as tierLoaderService from '../services/tierLoaderService.js';
+  import CountBadge from './shared/CountBadge.svelte';
 
   let {
     initialTierRules = { type: 'NO_REQUIREMENTS', any_of: [] },
@@ -67,23 +67,20 @@
   }
 
   async function loadTiers(tierStructureId) {
-    if (loadingTiers.has(tierStructureId) || tiersCache[tierStructureId]) {
+    if (tierLoaderService.isLoading(tierStructureId) || tiersCache[tierStructureId]) {
       return;
     }
 
     loadingTiers = new Set([...loadingTiers, tierStructureId]);
     
-    try {
-      const response = await api.get(endpoints.tierStructures.tiers.list(tierStructureId));
-      tiersCache = { ...tiersCache, [tierStructureId]: response.data || [] };
-    } catch (err) {
-      console.error('Failed to load tiers:', err);
-      tiersCache = { ...tiersCache, [tierStructureId]: [] };
-    } finally {
-      const newLoading = new Set(loadingTiers);
-      newLoading.delete(tierStructureId);
-      loadingTiers = newLoading;
+    const tiers = await tierLoaderService.loadTiers(tierStructureId);
+    if (tiers !== null) {
+      tiersCache = { ...tiersCache, [tierStructureId]: tiers };
     }
+
+    const newLoading = new Set(loadingTiers);
+    newLoading.delete(tierStructureId);
+    loadingTiers = newLoading;
   }
 
   function updateTierStructure(index, tierStructureId) {
@@ -243,9 +240,7 @@
                       <div class="text-xs font-medium text-base-content/70">
                         Tiers
                         {#if entry.tier_ids?.length > 0}
-                          <span class="badge badge-xs badge-ghost ml-1">
-                            {entry.tier_ids.length} selected
-                          </span>
+                          <CountBadge count={entry.tier_ids.length} label="selected" className="ml-1" />
                         {/if}
                       </div>
                       

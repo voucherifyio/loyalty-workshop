@@ -48,7 +48,7 @@ export const samplePayloads = {
   earningRules: {
     name: "Order Paid Points",
     trigger: {
-      event: "ORDER_PAID",
+      event: "customer.order.paid",
     },
     earnings: [
       {

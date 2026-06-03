@@ -1,5 +1,6 @@
 <script>
   import { formatNum } from '../../utils/transactionFormatting.js';
+  import JsonDisplay from '../shared/JsonDisplay.svelte';
 
   let {
     results = null,

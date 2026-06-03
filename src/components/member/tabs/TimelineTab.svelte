@@ -1,5 +1,10 @@
 <script>
   import StatusBadge from '../../StatusBadge.svelte';
+  import SectionHeading from '../../shared/SectionHeading.svelte';
+  import ExpandableJsonRow from '../../shared/ExpandableJsonRow.svelte';
+  import LoadingState from '../../shared/LoadingState.svelte';
+  import EmptyState from '../../shared/EmptyState.svelte';
+  import CountBadge from '../../shared/CountBadge.svelte';
   import { getSignedPoints, getTxTypeColor, getTierTxTypeColor, formatDateTime } from '../../../utils/transactionFormatting.js';
 
   let {
@@ -15,17 +20,21 @@
 </script>
 
 <div>
-  <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest mb-3">
-    All Transactions
-    {#if items.length > 0}
-      <span class="badge badge-xs badge-ghost ml-1 normal-case">{items.length}</span>
-    {/if}
-  </p>
+  <div class="mb-3">
+    <SectionHeading>
+      {#snippet children()}
+        All Transactions
+        {#if items.length > 0}
+          <CountBadge count={items.length} className="ml-1 normal-case" />
+        {/if}
+      {/snippet}
+    </SectionHeading>
+  </div>
 
   {#if loading}
-    <div class="flex items-center justify-center py-12"><span class="loading loading-spinner loading-md"></span></div>
+    <LoadingState />
   {:else if items.length === 0}
-    <div class="alert alert-info text-sm"><span>No transactions found</span></div>
+    <EmptyState message="No transactions found" />
   {:else}
     <div class="overflow-x-auto">
       <table class="table table-zebra table-xs">
@@ -76,9 +85,7 @@
                 </button>
               </td>
             </tr>
-            {#if expandedRows[tx.id]}
-              <tr><td colspan="8" class="bg-base-300"><pre class="text-[9px] p-2 overflow-x-auto">{JSON.stringify(tx, null, 2)}</pre></td></tr>
-            {/if}
+            <ExpandableJsonRow data={tx} colspan={8} expanded={expandedRows[tx.id]} />
             {#if child}
               <tr class="bg-base-200/40 border-l-2 border-primary/20">
                 <td class="text-[10px] whitespace-nowrap pl-6 text-base-content/40">
@@ -101,9 +108,7 @@
                   </button>
                 </td>
               </tr>
-              {#if expandedRows[child.id]}
-                <tr><td colspan="8" class="bg-base-300"><pre class="text-[9px] p-2 overflow-x-auto">{JSON.stringify(child, null, 2)}</pre></td></tr>
-              {/if}
+                <ExpandableJsonRow data={child} colspan={8} expanded={expandedRows[child.id]} />
             {/if}
           {/each}
         </tbody>

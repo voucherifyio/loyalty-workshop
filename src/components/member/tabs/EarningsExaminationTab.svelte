@@ -1,7 +1,7 @@
 <script>
-  import { api } from '../../../api/client.js';
-  import { endpoints } from '../../../api/endpoints.js';
   import { toast } from '../../../services/toast.js';
+  import { downloadJson } from '../../../utils/downloadJson.js';
+  import * as examinationService from '../../../services/examinationService.js';
   import ExaminationResults from '../../examine/ExaminationResults.svelte';
   import ExamineConfigModal from '../../examine/ExamineConfigModal.svelte';
   import TriggerCustomEventModal from '../../TriggerCustomEventModal.svelte';
@@ -9,7 +9,6 @@
   import UpdateCustomerMetadataModal from '../../UpdateCustomerMetadataModal.svelte';
 
   let {
-    programId = '',
     memberId = '',
     member = null
   } = $props();
@@ -34,39 +33,15 @@
   });
 
   async function runDefaultScenario() {
-    const allTriggersPayload = {
-      trigger: { type: 'ALL' },
-      customer_identification: { type: 'member_id', member_id: memberId },
-      customer_order_paid: {
-        order: { amount: 10000 },
-        customer: { metadata: {} },
-        member: { metadata: {} }
-      },
-      customer_segment_entered: {
-        customer: { metadata: {} },
-        member: { metadata: {} }
-      },
-      customer_custom_event: {
-        type: 'ALL',
-        all: {
-          custom_event: { metadata: {} },
-          customer: { metadata: {} },
-          member: { metadata: {} }
-        }
-      }
-    };
-    await runExamination(allTriggersPayload);
+    const payload = examinationService.createDefaultEarningsPayload(memberId);
+    await runExamination(payload);
   }
 
   async function runExamination(payload) {
     loading = true;
     try {
-      // Build the request payload - clean it up
-      const requestPayload = buildRequestPayload(payload);
       currentPayload = payload;
-      
-      const response = await api.post(endpoints.examine.run(), requestPayload);
-      results = response;
+      results = await examinationService.runEarningsExamination(payload);
       toast.success('Examination completed');
     } catch (error) {
       console.error('Examination failed:', error);
@@ -76,56 +51,9 @@
     }
   }
 
-  function buildRequestPayload(payload) {
-    const cleaned = JSON.parse(JSON.stringify(payload));
-    
-    // Convert amount to number if it's a string
-    if (cleaned.customer_order_paid?.order?.amount) {
-      cleaned.customer_order_paid.order.amount = parseInt(cleaned.customer_order_paid.order.amount);
-    }
-
-    // Remove empty metadata objects
-    function cleanMetadata(obj) {
-      if (obj && typeof obj === 'object') {
-        Object.keys(obj).forEach(key => {
-          if (key === 'metadata' && obj[key] && Object.keys(obj[key]).length === 0) {
-            delete obj[key];
-          } else if (typeof obj[key] === 'object') {
-            cleanMetadata(obj[key]);
-          }
-        });
-      }
-    }
-    cleanMetadata(cleaned);
-
-    // For SPECIFIC trigger, only include the relevant event data
-    if (cleaned.trigger.type === 'SPECIFIC') {
-      const event = cleaned.trigger.specific.event;
-      if (event === 'customer.order.paid') {
-        delete cleaned.customer_segment_entered;
-        delete cleaned.customer_custom_event;
-      } else if (event === 'customer.segment.entered') {
-        delete cleaned.customer_order_paid;
-        delete cleaned.customer_custom_event;
-      } else if (event === 'customer.custom_event') {
-        delete cleaned.customer_order_paid;
-        delete cleaned.customer_segment_entered;
-      }
-    }
-
-    return cleaned;
-  }
-
   function handleExport() {
     if (results) {
-      const dataStr = JSON.stringify(results, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `examination-results-${Date.now()}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
+      downloadJson(results, `examination-results-${Date.now()}`);
       toast.success('Results exported');
     }
   }

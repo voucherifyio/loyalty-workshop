@@ -23,6 +23,7 @@
   let result = $state(null);
   let error = $state(null);
   let createdSomething = $state(false);
+  let hasInitialized = $state(false);
 
   const createState = 'DRAFT';
   
@@ -38,70 +39,127 @@
     Object.entries(getEditableProperties(entityType, createState))
   );
 
-  $effect(() => {
-    if (open && entityType) {
-      // Initialize from sample
-      try {
-        const sample = samplePayload ? JSON.parse(samplePayload) : {};
-        formData = {};
-        const properties = getEditableProperties(entityType, createState);
-        for (const fieldName of Object.keys(properties)) {
-          formData[fieldName] = sample[fieldName] !== undefined ? sample[fieldName] : '';
+  // Display state for textarea values (what user sees/types)
+  // Initialized on open, then maintained manually in handleInput
+  let displayData = $state({});
+
+  function initForm() {
+    // Initialize from sample
+    try {
+      const sample = samplePayload ? JSON.parse(samplePayload) : {};
+      formData = {};
+      displayData = {};
+      const properties = getEditableProperties(entityType, createState);
+      for (const fieldName of Object.keys(properties)) {
+        let value = sample[fieldName] !== undefined ? sample[fieldName] : '';
+        
+        // Set default values for specific fields
+        if (fieldName === 'status' && !value) {
+          value = 'DRAFT';
         }
-      } catch {
-        formData = {};
-        const properties = getEditableProperties(entityType, createState);
-        for (const fieldName of Object.keys(properties)) {
-          formData[fieldName] = '';
+        if (entityType === 'cardDefinitions' && fieldName === 'type' && !value) {
+          value = 'INDIVIDUAL';
         }
+        
+      formData[fieldName] = value;
+      // Initialize display data
+      // Check if field is datetime type
+      const fieldConfig = properties[fieldName];
+      if (fieldConfig?.type === 'datetime') {
+        // For datetime fields, convert ISO to datetime-local format
+        displayData[fieldName] = toDateTimeLocalValue(value);
+      } else if (typeof value === 'object' && value !== null) {
+        displayData[fieldName] = JSON.stringify(value, null, 2);
+      } else {
+        displayData[fieldName] = String(value || '');
       }
-      result = null;
-      error = null;
-      createdSomething = false;
+      }
+    } catch {
+      formData = {};
+      displayData = {};
+      const properties = getEditableProperties(entityType, createState);
+      for (const fieldName of Object.keys(properties)) {
+        // Set default values even in error case
+        let value = '';
+        if (fieldName === 'status') {
+          value = 'DRAFT';
+        }
+        if (entityType === 'cardDefinitions' && fieldName === 'type') {
+          value = 'INDIVIDUAL';
+        }
+        
+        formData[fieldName] = value;
+        displayData[fieldName] = value;
+      }
+    }
+    result = null;
+    error = null;
+    createdSomething = false;
+  }
+
+  $effect(() => {
+    if (open && entityType && !hasInitialized) {
+      initForm();
+      hasInitialized = true;
     }
   });
 
-  // Convert formData to display strings for textareas
-  let displayData = $state({});
-  
   $effect(() => {
-    // When formData changes, update display strings
-    const newDisplay = {};
-    for (const [key, value] of Object.entries(formData)) {
-      if (typeof value === 'object' && value !== null) {
-        newDisplay[key] = JSON.stringify(value, null, 2);
-      } else {
-        newDisplay[key] = String(value || '');
-      }
+    if (!open) {
+      hasInitialized = false;
     }
-    displayData = newDisplay;
   });
 
   function handleInput(fieldName, newValue) {
-    // Try to parse as JSON, fallback to string
-    try {
-      const trimmed = newValue.trim();
-      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    // Update display data immediately
+    displayData[fieldName] = newValue;
+    
+    const trimmed = newValue.trim();
+    
+    // Handle empty values
+    if (!trimmed) {
+      formData[fieldName] = '';
+      return;
+    }
+    
+    // Check if this field is defined as JSON type in entity properties
+    const properties = getEditableProperties(entityType, createState);
+    const fieldConfig = properties[fieldName];
+    const isJsonField = fieldConfig?.type === 'json';
+    
+    // For JSON fields, try to parse
+    if (isJsonField) {
+      try {
         formData[fieldName] = JSON.parse(newValue);
-      } else {
+      } catch (err) {
+        // Invalid JSON - could be mid-typing, so we'll keep it as string temporarily
+        // The payload builder will exclude it if it's still invalid when submitting
         formData[fieldName] = newValue;
       }
-    } catch {
-      // Invalid JSON, keep as string
-      formData[fieldName] = newValue;
+    } else {
+      // For non-JSON fields
+      try {
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          formData[fieldName] = JSON.parse(newValue);
+        } else {
+          formData[fieldName] = newValue;
+        }
+      } catch {
+        formData[fieldName] = newValue;
+      }
     }
-    displayData[fieldName] = newValue;
   }
 
   // Handle datetime input and convert to ISO format
   function handleDateTimeInput(fieldName, newValue) {
+    // displayData stores the datetime-local format (YYYY-MM-DDThh:mm)
+    displayData[fieldName] = newValue;
+    
     if (!newValue) {
       formData[fieldName] = '';
-      displayData[fieldName] = '';
     } else {
       // Convert from datetime-local format (YYYY-MM-DDThh:mm) to ISO 8601
       formData[fieldName] = new Date(newValue).toISOString();
-      displayData[fieldName] = newValue;
     }
   }
 
@@ -127,7 +185,28 @@
     submitting = true;
 
     try {
-      const payload = buildCreatePayload(entityType, formData);
+      // Parse any JSON fields that are still strings before building payload
+      const properties = getEditableProperties(entityType, createState);
+      const jsonFields = Object.keys(properties).filter(key => properties[key]?.type === 'json');
+      const parsedFormData = { ...formData };
+      
+      for (const fieldName of jsonFields) {
+        if (fieldName in parsedFormData) {
+          const value = parsedFormData[fieldName];
+          // If it's a string, try to parse it
+          if (typeof value === 'string' && value.trim()) {
+            try {
+              parsedFormData[fieldName] = JSON.parse(value);
+            } catch (err) {
+              // Invalid JSON - show error and don't submit
+              error = `Invalid JSON in field "${fieldName}": ${err.message}`;
+              return;
+            }
+          }
+        }
+      }
+      
+      const payload = buildCreatePayload(entityType, parsedFormData);
       const response = await api.post(createEndpoint, payload);
       result = { success: true, data: response };
       createdSomething = true;
@@ -139,22 +218,7 @@
   }
 
   function handleCreateAnother() {
-    try {
-      const sample = samplePayload ? JSON.parse(samplePayload) : {};
-      formData = {};
-      const properties = getEditableProperties(entityType, createState);
-      for (const fieldName of Object.keys(properties)) {
-        formData[fieldName] = sample[fieldName] !== undefined ? sample[fieldName] : '';
-      }
-    } catch {
-      formData = {};
-      const properties = getEditableProperties(entityType, createState);
-      for (const fieldName of Object.keys(properties)) {
-        formData[fieldName] = '';
-      }
-    }
-    result = null;
-    error = null;
+    initForm();
   }
 
   function handleClose() {
@@ -223,7 +287,7 @@
           {#each editableFields as [fieldName, fieldConfig]}
             {@const isRewardCosts = entityType === 'rewards' && fieldName === 'costs'}
             {@const isEarningRuleEarnings = entityType === 'earningRules' && fieldName === 'earnings'}
-            {@const isDateTimeField = fieldName === 'start_date' || fieldName === 'end_date'}
+            {@const isDateTimeField = fieldConfig?.type === 'datetime'}
             
             <span class="text-base-content/50 pt-2">{fieldName}</span>
             
@@ -233,11 +297,11 @@
                 <input
                   type="datetime-local"
                   class="input input-sm input-bordered font-mono text-xs w-full"
-                  value={toDateTimeLocalValue(formData[fieldName])}
+                  value={displayData[fieldName] || ''}
                   oninput={(e) => handleDateTimeInput(fieldName, e.target.value)}
                   disabled={submitting}
                 />
-                {#if formData[fieldName]}
+                {#if displayData[fieldName]}
                   <button
                     type="button"
                     class="btn btn-sm btn-ghost btn-circle shrink-0"

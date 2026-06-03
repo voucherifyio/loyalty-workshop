@@ -3,6 +3,11 @@
   import { endpoints } from '../api/endpoints.js';
   import { toast } from '../services/toast.js';
   import OrderInputForm from './OrderInputForm.svelte';
+  import BaseModal from './shared/BaseModal.svelte';
+  import ModalHeader from './shared/ModalHeader.svelte';
+  import ModalFooter from './shared/ModalFooter.svelte';
+  import AlertBanner from './shared/AlertBanner.svelte';
+  import { buildPaidOrderPayload } from '../utils/orderPayload.js';
 
   let {
     open = false,
@@ -60,34 +65,7 @@
       let createdOrderId = null;
 
       if (orderMode === 'create') {
-        // Create the order
-        const orderPayload = {
-          customer_id: customerId,
-          status: 'PAID'
-        };
-
-        if (createMode === 'simple') {
-          orderPayload.amount = parseInt(orderAmount);
-        } else {
-          // Add items to the payload
-          orderPayload.items = orderItems.map(item => {
-            const itemData = {
-              price: parseInt(item.price),
-              quantity: parseInt(item.quantity),
-              amount: parseInt(item.price) * parseInt(item.quantity)
-            };
-            if (item.product_id && item.product_id.trim()) {
-              itemData.product_id = item.product_id.trim();
-            }
-            if (item.sku_id && item.sku_id.trim()) {
-              itemData.sku_id = item.sku_id.trim();
-            }
-            return itemData;
-          });
-          // Calculate total amount from items
-          orderPayload.amount = orderPayload.items.reduce((sum, item) => sum + item.amount, 0);
-        }
-
+        const orderPayload = buildPaidOrderPayload({ customerId, createMode, orderAmount, orderItems });
         const orderResponse = await api.post(endpoints.orders.create(), orderPayload);
         createdOrderId = orderResponse.id;
         orderRef = { id: createdOrderId };
@@ -119,58 +97,44 @@
       reset();
     }
   });
+
+  const confirmLabel = $derived(orderMode === 'create' ? 'Create Order & Continue' : 'Select Order');
 </script>
 
-{#if open}
-  <dialog class="modal modal-open">
-    <div class="modal-box max-w-2xl">
-      <h3 class="font-bold text-lg mb-4">Select or Create Order</h3>
+<BaseModal {open} size="md" onClose={handleClose}>
+  {#snippet children()}
+    <ModalHeader
+      title="Select or Create Order"
+      onClose={handleClose}
+      disabled={submitting}
+    />
 
-      <div class="space-y-4">
-        <OrderInputForm
-          bind:mode={orderMode}
-          {customerId}
-          bind:orderRefType
-          bind:orderRefValue
-          bind:orderAmount
-          bind:createMode
-          bind:orderItems
-        />
+    <div class="space-y-4">
+      <OrderInputForm
+        bind:mode={orderMode}
+        {customerId}
+        bind:orderRefType
+        bind:orderRefValue
+        bind:orderAmount
+        bind:createMode
+        bind:orderItems
+      />
 
-        {#if error}
-          <div class="alert alert-error">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 shrink-0">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-            </svg>
-            <div class="flex-1">
-              <div class="font-bold text-sm">Error</div>
-              <pre class="text-xs mt-1">{error}</pre>
-            </div>
-          </div>
-        {/if}
-      </div>
-
-      <div class="modal-action">
-        <button class="btn btn-ghost" onclick={handleClose} disabled={submitting}>
-          Cancel
-        </button>
-        <button
-          class="btn btn-primary"
-          onclick={handleConfirm}
-          disabled={submitting || !isValid()}
-        >
-          {#if submitting}
-            <span class="loading loading-spinner loading-sm"></span>
-          {:else if orderMode === 'create'}
-            Create Order & Continue
-          {:else}
-            Select Order
-          {/if}
-        </button>
-      </div>
+      {#if error}
+        <AlertBanner variant="error" title="Error">
+          {#snippet children()}
+            <pre class="text-xs mt-1">{error}</pre>
+          {/snippet}
+        </AlertBanner>
+      {/if}
     </div>
-    <form method="dialog" class="modal-backdrop">
-      <button onclick={handleClose}>close</button>
-    </form>
-  </dialog>
-{/if}
+
+    <ModalFooter
+      {confirmLabel}
+      loading={submitting}
+      confirmDisabled={!isValid()}
+      onCancel={handleClose}
+      onConfirm={handleConfirm}
+    />
+  {/snippet}
+</BaseModal>

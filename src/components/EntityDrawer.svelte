@@ -5,6 +5,7 @@
   import EntityActivitiesTab from "./entity/EntityActivitiesTab.svelte";
   import EntityLinkedTab from "./entity/EntityLinkedTab.svelte";
   import EntityEditTab from "./entity/EntityEditTab.svelte";
+  import JsonDisplay from "./shared/JsonDisplay.svelte";
 
   let {
     open = false,

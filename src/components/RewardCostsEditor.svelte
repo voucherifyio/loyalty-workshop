@@ -1,5 +1,6 @@
 <script>
   import TierRulesEditor from './TierRulesEditor.svelte';
+  import CountBadge from './shared/CountBadge.svelte';
 
   let {
     initialCosts = [],
@@ -198,9 +199,7 @@
                   </svg>
                   <span class="text-sm font-semibold">Cost {index + 1}</span>
                   {#if spending.points > 0 && spending.card_definition_id}
-                    <span class="badge badge-xs badge-ghost font-mono">
-                      {spending.points} pts
-                    </span>
+                    <CountBadge count={spending.points} label="pts" className="font-mono" />
                   {/if}
                 </button>
                 <button

@@ -3,18 +3,7 @@
   import RewardStockEditor from './RewardStockEditor.svelte';
   import { entityIcons } from '../config/designerConfig.js';
   import { getEarningRuleSummary } from '../utils/earningRuleSummary.js';
-
-  const EARNING_RULE_TRIGGERS = [
-    { key: 'orderPaid', name: 'Order Paid' },
-    { key: 'customEvent', name: 'Custom Event' },
-    { key: 'segmentEntered', name: 'Segment Entered' },
-  ];
-
-  const REWARD_TYPES = [
-    { key: 'material', name: 'Material' },
-    { key: 'digitalCoupons', name: 'Digital Coupons' },
-    { key: 'digitalGiftCards', name: 'Digital Gift Cards' },
-  ];
+  import CountBadge from './shared/CountBadge.svelte';
 
   const TRIGGER_ORDER_PAID = "customer.order.paid";
   const TRIGGER_CUSTOM_EVENT = "customer.custom_event";
@@ -99,69 +88,162 @@
     rewardStockEditor = { rewardId, mode: 'edit' };
   }
 
-  // Shared earning rule column props
-  const earningRuleColumnProps = $derived({
-    icon: entityIcons.earningRules.icon,
-    loading,
-    hasMore: hasMore.earningRules,
-    loadingMore: loadingMore.earningRules,
-    countdown: cursorCountdown.earningRules,
-    getClasses,
-    usage: entityUsage.earningRules,
-    shakeCard,
-    removingCard,
-    onExpand,
-    onCreate: () => onCreate("earningRules"),
-    onSelect: (id) => onSelect("earningRules", id),
-    onStatusChange: (id, action, toStatus) => onStatusChange("earningRules", id, action, toStatus),
-    onLoadMore: () => onLoadMore("earningRules"),
-    onRefresh: () => onRefresh("earningRules"),
-    assignmentMode: assignmentActive,
-    isEntityAssigned,
-    onToggleAssign: assignmentActive ? (entityType, id) => toggleEntityAssignment("earningRules", id) : null,
-  });
+  // Get column props for a specific earning rule trigger
+  function getEarningRuleColumnProps(triggerEvent) {
+    // Build prefill data based on trigger type
+    let prefillData = { trigger: { event: triggerEvent } };
+    
+    // Set appropriate name based on trigger type
+    if (triggerEvent === TRIGGER_ORDER_PAID) {
+      prefillData.name = "Order Paid Points";
+    } else if (triggerEvent === TRIGGER_CUSTOM_EVENT) {
+      prefillData.name = "Custom Event Points";
+      prefillData.trigger.custom_event = { schema_id: "" };
+    } else if (triggerEvent === TRIGGER_SEGMENT) {
+      prefillData.name = "Segment Entered Points";
+      prefillData.trigger.segment = { id: "" };
+    }
+    
+    return {
+      icon: entityIcons.earningRules.icon,
+      loading,
+      hasMore: hasMore.earningRules,
+      loadingMore: loadingMore.earningRules,
+      countdown: cursorCountdown.earningRules,
+      getClasses,
+      usage: entityUsage.earningRules,
+      shakeCard,
+      removingCard,
+      onExpand,
+      onCreate: () => onCreate("earningRules", prefillData),
+      onSelect: (id) => onSelect("earningRules", id),
+      onStatusChange: (id, action, toStatus) => onStatusChange("earningRules", id, action, toStatus),
+      onLoadMore: () => onLoadMore("earningRules"),
+      onRefresh: () => onRefresh("earningRules"),
+      assignmentMode: assignmentActive,
+      isEntityAssigned,
+      onToggleAssign: assignmentActive ? (entityType, id) => toggleEntityAssignment("earningRules", id) : null,
+    };
+  }
 
-  const rewardColumnProps = $derived({
-    icon: entityIcons.rewards.icon,
-    loading,
-    hasMore: hasMore.rewards,
-    loadingMore: loadingMore.rewards,
-    countdown: cursorCountdown.rewards,
-    getClasses,
-    usage: entityUsage.rewards,
-    shakeCard,
-    removingCard,
-    onExpand,
-    onCreate: () => onCreate("rewards"),
-    onSelect: (id) => onSelect("rewards", id),
-    onStatusChange: (id, action, toStatus) => onStatusChange("rewards", id, action, toStatus),
-    onLoadMore: () => onLoadMore("rewards"),
-    onRefresh: () => onRefresh("rewards"),
-    assignmentMode: assignmentActive,
-    isEntityAssigned,
-    onToggleAssign: assignmentActive ? (entityType, id) => handleRewardToggle("rewards", id) : null,
-  });
+  // Get column props for a specific reward type
+  function getRewardColumnProps(rewardType) {
+    let prefillData = {};
+    
+    if (rewardType === 'material') {
+      prefillData.name = "Material Reward";
+      prefillData.type = "MATERIAL";
+      prefillData.material = {
+        type: "PRODUCT",
+        product: { id: "" }
+      };
+      prefillData.digital = ""; // Exclude digital field for material rewards
+    } else if (rewardType === 'digitalCoupons') {
+      prefillData.name = "Discount Coupon Reward";
+      prefillData.type = "DIGITAL";
+      prefillData.digital = {
+        type: "DISCOUNT_COUPONS",
+        discount_coupons: { campaign_id: "" }
+      };
+      prefillData.material = ""; // Exclude material field for digital rewards
+    } else if (rewardType === 'digitalGiftCards') {
+      prefillData.name = "Gift Voucher Reward";
+      prefillData.type = "DIGITAL";
+      prefillData.digital = {
+        type: "GIFT_VOUCHERS",
+        gift_vouchers: { 
+          campaign_id: "",
+          balance: 0
+        }
+      };
+      prefillData.material = ""; // Exclude material field for digital rewards
+    }
+    
+    return {
+      icon: entityIcons.rewards.icon,
+      loading,
+      hasMore: hasMore.rewards,
+      loadingMore: loadingMore.rewards,
+      countdown: cursorCountdown.rewards,
+      getClasses,
+      usage: entityUsage.rewards,
+      shakeCard,
+      removingCard,
+      onExpand,
+      onCreate: () => onCreate("rewards", prefillData),
+      onSelect: (id) => onSelect("rewards", id),
+      onStatusChange: (id, action, toStatus) => onStatusChange("rewards", id, action, toStatus),
+      onLoadMore: () => onLoadMore("rewards"),
+      onRefresh: () => onRefresh("rewards"),
+      assignmentMode: assignmentActive,
+      isEntityAssigned,
+      onToggleAssign: assignmentActive ? (entityType, id) => handleRewardToggle("rewards", id) : null,
+    };
+  }
 
-  const incentiveColumnProps = $derived({
-    icon: entityIcons.incentives.icon,
-    loading,
-    hasMore: hasMore.incentives,
-    loadingMore: loadingMore.incentives,
-    countdown: cursorCountdown.incentives,
-    getClasses,
-    usage: entityUsage.incentives,
-    shakeCard,
-    removingCard,
-    onExpand,
-    onCreate: () => onCreate("incentives"),
-    onSelect: (id) => onSelect("incentives", id),
-    onStatusChange: (id, action, toStatus) => onStatusChange("incentives", id, action, toStatus),
-    onLoadMore: () => onLoadMore("incentives"),
-    onRefresh: () => onRefresh("incentives"),
-    assignmentMode: false,
-    isEntityAssigned,
-    onToggleAssign: null,
-  });
+  // Get column props for a specific incentive type
+  function getIncentiveColumnProps(incentiveType) {
+    let prefillData = {};
+    
+    if (incentiveType === 'points') {
+      prefillData.name = "Points Incentive";
+      prefillData.type = "POINTS";
+      prefillData.points = { value: 0, card_definition_id: "" };
+      prefillData.material = ""; // Exclude material field
+      prefillData.digital = ""; // Exclude digital field
+    } else if (incentiveType === 'material') {
+      prefillData.name = "Material Incentive";
+      prefillData.type = "MATERIAL";
+      prefillData.material = {
+        type: "PRODUCT",
+        product: { id: "" }
+      };
+      prefillData.points = ""; // Exclude points field
+      prefillData.digital = ""; // Exclude digital field
+    } else if (incentiveType === 'digitalCoupons') {
+      prefillData.name = "Discount Coupon Incentive";
+      prefillData.type = "DIGITAL";
+      prefillData.digital = {
+        type: "DISCOUNT_COUPONS",
+        discount_coupons: { campaign_id: "" }
+      };
+      prefillData.points = ""; // Exclude points field
+      prefillData.material = ""; // Exclude material field
+    } else if (incentiveType === 'digitalGiftCards') {
+      prefillData.name = "Gift Voucher Incentive";
+      prefillData.type = "DIGITAL";
+      prefillData.digital = {
+        type: "GIFT_VOUCHERS",
+        gift_vouchers: { 
+          campaign_id: "",
+          balance: 0
+        }
+      };
+      prefillData.points = ""; // Exclude points field
+      prefillData.material = ""; // Exclude material field
+    }
+    
+    return {
+      icon: entityIcons.incentives.icon,
+      loading,
+      hasMore: hasMore.incentives,
+      loadingMore: loadingMore.incentives,
+      countdown: cursorCountdown.incentives,
+      getClasses,
+      usage: entityUsage.incentives,
+      shakeCard,
+      removingCard,
+      onExpand,
+      onCreate: () => onCreate("incentives", prefillData),
+      onSelect: (id) => onSelect("incentives", id),
+      onStatusChange: (id, action, toStatus) => onStatusChange("incentives", id, action, toStatus),
+      onLoadMore: () => onLoadMore("incentives"),
+      onRefresh: () => onRefresh("incentives"),
+      assignmentMode: false,
+      isEntityAssigned,
+      onToggleAssign: null,
+    };
+  }
 </script>
 
 <!-- Earnings panel -->
@@ -244,24 +326,38 @@
 
   {#snippet earningRuleExtra(item)}
     {#if earningRuleCards[item.id]?.length}
-      <span class="font-medium">Cards <span class="badge badge-xs badge-ghost">{earningRuleCards[item.id].length}</span></span>
+      <span class="font-medium">Cards <CountBadge count={earningRuleCards[item.id].length} /></span>
     {/if}
     {#if getEarningRuleSummary(item).totalEffectCount === 0 && !earningRuleCards[item.id]?.length}
       <span class="text-base-content/40">Uses nothing</span>
     {/if}
   {/snippet}
   
-  <div class="grid gap-4" style="grid-template-columns: 1fr 1fr 1fr;">
-    {#each EARNING_RULE_TRIGGERS as { key, name }}
-      <EntityColumn
-        entityType="earningRules"
-        items={earningRulesByTrigger[key]}
-        {name}
-        {...earningRuleColumnProps}
-        bodyContent={earningRuleBody}
-        extraBadges={earningRuleExtra}
-      />
-    {/each}
+  <div class="grid grid-cols-3 gap-4">
+    <EntityColumn
+      entityType="earningRules"
+      items={earningRulesByTrigger.orderPaid}
+      name="Order Paid"
+      {...getEarningRuleColumnProps(TRIGGER_ORDER_PAID)}
+      bodyContent={earningRuleBody}
+      extraBadges={earningRuleExtra}
+    />
+    <EntityColumn
+      entityType="earningRules"
+      items={earningRulesByTrigger.customEvent}
+      name="Custom Event"
+      {...getEarningRuleColumnProps(TRIGGER_CUSTOM_EVENT)}
+      bodyContent={earningRuleBody}
+      extraBadges={earningRuleExtra}
+    />
+    <EntityColumn
+      entityType="earningRules"
+      items={earningRulesByTrigger.segmentEntered}
+      name="Segment Entered"
+      {...getEarningRuleColumnProps(TRIGGER_SEGMENT)}
+      bodyContent={earningRuleBody}
+      extraBadges={earningRuleExtra}
+    />
   </div>
 
   <!-- Divider + Incentives (label matches Earnings / Rewards) -->
@@ -272,13 +368,13 @@
       <span class="badge badge-xs badge-ghost text-base-content/50">View only</span>
     {/if}
   </div>
-  <div class="grid gap-4" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
+  <div class="grid grid-cols-4 gap-4">
         <!-- Points -->
         <EntityColumn
           entityType="incentives"
           items={incentivesByType.points}
           name="Points"
-          {...incentiveColumnProps}
+          {...getIncentiveColumnProps('points')}
         >
           {#snippet extraBadges(item)}
             {#if getIncentiveCardDefId(item)}
@@ -295,7 +391,7 @@
           entityType="incentives"
           items={incentivesByType.material}
           name="Material"
-          {...incentiveColumnProps}
+          {...getIncentiveColumnProps('material')}
         />
 
         <!-- Digital Coupons -->
@@ -303,7 +399,7 @@
           entityType="incentives"
           items={incentivesByType.digitalCoupons}
           name="Digital Coupons"
-          {...incentiveColumnProps}
+          {...getIncentiveColumnProps('digitalCoupons')}
         />
 
         <!-- Digital Gift Cards -->
@@ -311,7 +407,7 @@
           entityType="incentives"
           items={incentivesByType.digitalGiftCards}
           name="Digital Gift Cards"
-          {...incentiveColumnProps}
+          {...getIncentiveColumnProps('digitalGiftCards')}
         />
   </div>
 </div>
@@ -403,16 +499,30 @@
   {/snippet}
 
   <div class="grid gap-4" style="grid-template-columns: 1fr 1fr 1fr;">
-    {#each REWARD_TYPES as { key, name }}
-      <EntityColumn
-        entityType="rewards"
-        items={rewardsByType[key]}
-        {name}
-        {...rewardColumnProps}
-        bodyContent={rewardBody}
-        extraBadges={rewardExtra}
-      />
-    {/each}
+    <EntityColumn
+      entityType="rewards"
+      items={rewardsByType.material}
+      name="Material"
+      {...getRewardColumnProps('material')}
+      bodyContent={rewardBody}
+      extraBadges={rewardExtra}
+    />
+    <EntityColumn
+      entityType="rewards"
+      items={rewardsByType.digitalCoupons}
+      name="Digital Coupons"
+      {...getRewardColumnProps('digitalCoupons')}
+      bodyContent={rewardBody}
+      extraBadges={rewardExtra}
+    />
+    <EntityColumn
+      entityType="rewards"
+      items={rewardsByType.digitalGiftCards}
+      name="Digital Gift Cards"
+      {...getRewardColumnProps('digitalGiftCards')}
+      bodyContent={rewardBody}
+      extraBadges={rewardExtra}
+    />
   </div>
 </div>
 

@@ -72,6 +72,7 @@
     {:else}
       <div class="space-y-2">
         {#each items as item (item.id)}
+          {@const isAssigned = isEntityAssigned(entityType, item.id)}
           <EntityCard
             {entityType}
             {item}
@@ -85,7 +86,7 @@
             {onStatusChange}
             onExpand={onExpand ? () => onExpand(entityType, item.id) : null}
             {assignmentMode}
-            isAssigned={isEntityAssigned(entityType, item.id)}
+            {isAssigned}
             onToggleAssign={onToggleAssign ? (id) => onToggleAssign(entityType, id) : null}
           />
         {/each}

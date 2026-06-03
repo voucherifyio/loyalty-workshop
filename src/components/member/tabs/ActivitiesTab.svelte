@@ -1,5 +1,11 @@
 <script>
   import { formatDateTime } from '../../../utils/transactionFormatting.js';
+  import SectionHeading from '../../shared/SectionHeading.svelte';
+  import ExpandableJsonRow from '../../shared/ExpandableJsonRow.svelte';
+  import LoadingState from '../../shared/LoadingState.svelte';
+  import EmptyState from '../../shared/EmptyState.svelte';
+  import CountBadge from '../../shared/CountBadge.svelte';
+  import { getActivityTypeColor } from '../../../utils/activityFormatting.js';
 
   let {
     isMemberMode = false,
@@ -8,7 +14,6 @@
     loading = false,
     expandedRows = {},
     onToggleRow,
-    getActivityTypeColor,
   } = $props();
 
   const displayedActivities = $derived(isMemberMode ? memberActivities : cardActivities);
@@ -18,18 +23,20 @@
 
 <div>
   <div class="flex items-center gap-2 mb-4">
-    <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">
-      {isMemberMode ? 'Member Activities' : 'Card Activities'}
-    </p>
+    <SectionHeading>
+      {#snippet children()}
+        {isMemberMode ? 'Member Activities' : 'Card Activities'}
+      {/snippet}
+    </SectionHeading>
     {#if displayedActivities.length > 0}
-      <span class="badge badge-xs badge-ghost">{displayedActivities.length}</span>
+      <CountBadge count={displayedActivities.length} />
     {/if}
   </div>
 
   {#if loading}
-    <div class="flex items-center justify-center py-12"><span class="loading loading-spinner loading-md"></span></div>
+    <LoadingState />
   {:else if displayedActivities.length === 0}
-    <div class="alert alert-info text-sm"><span>No activities found</span></div>
+    <EmptyState message="No activities found" />
   {:else}
     <div class="overflow-x-auto">
       <table class="table table-zebra table-xs">
@@ -52,9 +59,7 @@
                 </button>
               </td>
             </tr>
-            {#if expandedRows[activity.id]}
-              <tr><td colspan="4" class="bg-base-300"><pre class="text-[9px] p-2 overflow-x-auto">{JSON.stringify(activity, null, 2)}</pre></td></tr>
-            {/if}
+            <ExpandableJsonRow data={activity} colspan={4} expanded={expandedRows[activity.id]} />
           {/each}
         </tbody>
       </table>

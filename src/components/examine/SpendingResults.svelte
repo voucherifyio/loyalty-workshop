@@ -1,6 +1,8 @@
 <script>
   import { formatNum } from '../../utils/transactionFormatting.js';
   import PurchaseRewardModal from '../PurchaseRewardModal.svelte';
+  import JsonDisplay from '../shared/JsonDisplay.svelte';
+  import RewardEstimationRow from './RewardEstimationRow.svelte';
 
   let {
     results = null,
@@ -409,7 +411,7 @@
         </svg>
       </button>
       {#if showJson}
-        <pre class="mt-3 text-xs bg-base-300 rounded p-3 overflow-x-auto max-h-96 overflow-y-auto">{JSON.stringify(results, null, 2)}</pre>
+        <JsonDisplay data={results} size="sm" maxHeight="max-h-96" />
       {/if}
     </div>
   </div>

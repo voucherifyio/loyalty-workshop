@@ -60,8 +60,14 @@ A: Settings (gear icon) → Select theme. 32 DaisyUI themes available.
 **Q: How to add a component?**  
 A: See [DEVELOPMENT.md](DEVELOPMENT.md#creating-a-new-component).
 
+**Q: How to use shared components?**  
+A: Import from `src/components/shared/`. Available: `JsonDisplay`, `LoadingState`, `EmptyState`, `FormSectionCard`, `DateTimeField`, `MetadataEditor`, `CountBadge`, modal components, and more. See [STYLE_GUIDE.md](STYLE_GUIDE.md#shared-components).
+
 **Q: How to add an API endpoint?**  
 A: Add to `src/api/endpoints.js`. See [DEVELOPMENT.md](DEVELOPMENT.md#adding-a-new-api-endpoint).
+
+**Q: What services are available?**  
+A: `memberDataService`, `entityCrudService`, `examinationService`, `reportsService`, `tierLoaderService`, `cardActionsService`, `designerStoreCoordinator`, `toast`. Located in `src/services/`.
 
 **Q: Why use runes instead of stores?**  
 A: Better reactivity, performance, DX. See [ARCHITECTURE.md](ARCHITECTURE.md#why-svelte-5-with-runes).

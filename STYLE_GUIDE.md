@@ -373,6 +373,142 @@ catch (err) {
 }
 ```
 
+## Shared Components
+
+### JSON Display
+
+**Rule**: Use `JsonDisplay.svelte` for all JSON rendering
+
+```svelte
+import JsonDisplay from '../components/shared/JsonDisplay.svelte';
+
+<!-- Standard display -->
+<JsonDisplay data={responseData} />
+
+<!-- With max height -->
+<JsonDisplay data={responseData} maxHeight="300px" />
+
+<!-- Compact size -->
+<JsonDisplay data={responseData} size="sm" />
+```
+
+**Never use**: Inline `<pre>` tags with JSON.stringify
+
+### Loading States
+
+**Rule**: Use `LoadingState.svelte` for consistent loading UI
+
+```svelte
+import LoadingState from '../components/shared/LoadingState.svelte';
+
+<!-- Standard loading -->
+{#if loading}
+  <LoadingState />
+{/if}
+
+<!-- With message -->
+<LoadingState message="Loading member data..." />
+
+<!-- Different size -->
+<LoadingState size="lg" />
+```
+
+### Empty States
+
+**Rule**: Use `EmptyState.svelte` for consistent empty state messaging
+
+```svelte
+import EmptyState from '../components/shared/EmptyState.svelte';
+
+<!-- Standard empty state -->
+{#if items.length === 0}
+  <EmptyState message="No items found" />
+{/if}
+
+<!-- With variant -->
+<EmptyState message="No transactions" variant="info" />
+```
+
+### Form Section Cards
+
+**Rule**: Use `FormSectionCard.svelte` for form sections
+
+```svelte
+import FormSectionCard from '../components/shared/FormSectionCard.svelte';
+
+<FormSectionCard title="Basic Information">
+  <!-- Form fields -->
+</FormSectionCard>
+
+<!-- Without title -->
+<FormSectionCard>
+  <!-- Content -->
+</FormSectionCard>
+```
+
+### Date/Time Fields
+
+**Rule**: Use `DateTimeField.svelte` for datetime inputs
+
+```svelte
+import DateTimeField from '../components/shared/DateTimeField.svelte';
+
+<DateTimeField
+  value={startDate}
+  fieldName="start_date"
+  onInput={(val) => startDate = val}
+  onClear={() => startDate = null}
+/>
+```
+
+### Metadata Editing
+
+**Rule**: Use `MetadataEditor.svelte` for key-value metadata
+
+```svelte
+import MetadataEditor from '../components/shared/MetadataEditor.svelte';
+
+<MetadataEditor
+  bind:entries={metadataEntries}
+  label="Customer Metadata"
+/>
+```
+
+### Count Badges
+
+**Rule**: Use `CountBadge.svelte` for displaying counts
+
+```svelte
+import CountBadge from '../components/shared/CountBadge.svelte';
+
+<CountBadge count={items.length} label="items" />
+```
+
+### Modal Structure
+
+**Rule**: Use `BaseModal`, `ModalHeader`, and `ModalFooter` components
+
+```svelte
+import BaseModal from '../components/shared/BaseModal.svelte';
+import ModalHeader from '../components/shared/ModalHeader.svelte';
+import ModalFooter from '../components/shared/ModalFooter.svelte';
+
+{#if open}
+  <BaseModal>
+    <ModalHeader title="Modal Title" onClose={handleClose} />
+    
+    <div class="modal-body">
+      <!-- Content -->
+    </div>
+    
+    <ModalFooter>
+      <button class="btn" onclick={handleClose}>Cancel</button>
+      <button class="btn btn-primary" onclick={handleSubmit}>Submit</button>
+    </ModalFooter>
+  </BaseModal>
+{/if}
+```
+
 ## Component Composition
 
 ### Event Handlers

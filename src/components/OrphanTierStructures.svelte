@@ -1,5 +1,6 @@
 <script>
   import StatusBadge from './StatusBadge.svelte';
+  import CountBadge from './shared/CountBadge.svelte';
 
   let {
     tierStructures = [],
@@ -40,7 +41,7 @@
           </div>
           <div class="flex items-center justify-center gap-2 pt-2 border-t border-base-300 text-[10px] text-base-content/60">
             {#if entityUsage.tierStructures?.[ts.id] > 0}
-              <span class="font-medium">Used by <span class="badge badge-xs badge-ghost">{entityUsage.tierStructures[ts.id]}</span></span>
+              <span class="font-medium">Used by <CountBadge count={entityUsage.tierStructures[ts.id]} /></span>
             {:else}
               <span class="badge badge-xs badge-ghost">Not used</span>
             {/if}

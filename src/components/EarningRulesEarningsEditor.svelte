@@ -1,5 +1,6 @@
 <script>
   import TierRulesEditor from './TierRulesEditor.svelte';
+  import EarningEffectEditor from './earnings/EarningEffectEditor.svelte';
 
   let {
     initialEarnings = [],
@@ -430,252 +431,20 @@
                     {:else}
                       <div class="space-y-3">
                         {#each block.effects as effect, effectIndex (effectIndex)}
-                          <div
-                            class="border border-base-300 rounded-lg p-3 space-y-3 bg-base-100"
-                          >
-                            <!-- Effect header with type selector and remove button -->
-                            <div class="flex items-center gap-2">
-                              <div class="form-control flex-1">
-                                <label
-                                  class="label py-0"
-                                  for="effect-type-{blockIndex}-{effectIndex}"
-                                >
-                                  <span class="label-text text-xs font-semibold"
-                                    >Effect Type</span
-                                  >
-                                </label>
-                                <select
-                                  id="effect-type-{blockIndex}-{effectIndex}"
-                                  class="select select-sm select-bordered font-mono text-xs"
-                                  value={effect.type}
-                                  onchange={(e) =>
-                                    updateEffectType(
-                                      blockIndex,
-                                      effectIndex,
-                                      e.target.value,
-                                    )}
-                                >
-                                  <option value="POINTS">Points</option>
-                                  <option value="INCENTIVE">Incentive</option>
-                                  <option value="POINTS_PROPORTIONAL"
-                                    >Points Proportional</option
-                                  >
-                                </select>
-                              </div>
-                              <button
-                                class="btn btn-ghost btn-xs btn-circle text-error self-end mb-0.5"
-                                onclick={() =>
-                                  removeEffect(blockIndex, effectIndex)}
-                                type="button"
-                                title="Remove effect"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke-width="2"
-                                  stroke="currentColor"
-                                  class="w-4 h-4"
-                                >
-                                  <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M6 18L18 6M6 6l12 12"
-                                  />
-                                </svg>
-                              </button>
-                            </div>
-
-                            <!-- Type-specific fields -->
-                            {#if effect.type === "POINTS"}
-                              <div
-                                class="space-y-2 pl-2 border-l-2 border-primary/20"
-                              >
-                                <!-- Value -->
-                                <div class="form-control">
-                                  <label
-                                    class="label py-0.5"
-                                    for="points-value-{blockIndex}-{effectIndex}"
-                                  >
-                                    <span
-                                      class="label-text text-xs font-semibold"
-                                      >Points Value</span
-                                    >
-                                  </label>
-                                  <input
-                                    id="points-value-{blockIndex}-{effectIndex}"
-                                    type="number"
-                                    class="input input-sm input-bordered w-full font-mono"
-                                    placeholder="Enter points value"
-                                    value={effect.points?.value || ""}
-                                    oninput={(e) =>
-                                      updatePointsValue(
-                                        blockIndex,
-                                        effectIndex,
-                                        e.target.value,
-                                      )}
-                                    min="1"
-                                  />
-                                </div>
-
-                                <!-- Card Definition -->
-                                <div class="form-control">
-                                  <label
-                                    class="label py-0.5"
-                                    for="points-card-{blockIndex}-{effectIndex}"
-                                  >
-                                    <span
-                                      class="label-text text-xs font-semibold"
-                                      >Card Definition (Wallet)</span
-                                    >
-                                  </label>
-                                  <select
-                                    id="points-card-{blockIndex}-{effectIndex}"
-                                    class="select select-sm select-bordered w-full font-mono text-xs"
-                                    value={effect.points?.card_definition_id ||
-                                      ""}
-                                    onchange={(e) =>
-                                      updatePointsCardDef(
-                                        blockIndex,
-                                        effectIndex,
-                                        e.target.value,
-                                      )}
-                                  >
-                                    <option value="">Select a wallet...</option>
-                                    {#each availableCardDefinitions as cardDef}
-                                      <option value={cardDef.id}
-                                        >{cardDef.name || cardDef.id}</option
-                                      >
-                                    {/each}
-                                  </select>
-                                  {#if availableCardDefinitions.length === 0}
-                                    <div class="label py-0.5">
-                                      <span class="label-text-alt text-warning"
-                                        >No card definitions available</span
-                                      >
-                                    </div>
-                                  {/if}
-                                </div>
-
-                                <!-- Expiration (JSON) -->
-                                <div class="form-control">
-                                  <label
-                                    class="label py-0.5"
-                                    for="points-exp-{blockIndex}-{effectIndex}"
-                                  >
-                                    <span
-                                      class="label-text text-xs font-semibold"
-                                      >Expiration (JSON)</span
-                                    >
-                                    <span
-                                      class="label-text-alt text-base-content/50"
-                                      >Optional</span
-                                    >
-                                  </label>
-                                  <textarea
-                                    id="points-exp-{blockIndex}-{effectIndex}"
-                                    class="textarea textarea-sm textarea-bordered font-mono text-xs"
-                                    rows="2"
-                                    placeholder=""
-                                    value={effect.points?.expiration
-                                      ? JSON.stringify(
-                                          effect.points.expiration,
-                                          null,
-                                          2,
-                                        )
-                                      : ""}
-                                    onblur={(e) =>
-                                      updatePointsExpiration(
-                                        blockIndex,
-                                        effectIndex,
-                                        e.target.value,
-                                      )}
-                                  ></textarea>
-                                </div>
-                              </div>
-                            {:else if effect.type === "INCENTIVE"}
-                              <div
-                                class="space-y-2 pl-2 border-l-2 border-secondary/20"
-                              >
-                                <!-- Incentive selector -->
-                                <div class="form-control">
-                                  <label
-                                    class="label py-0.5"
-                                    for="incentive-{blockIndex}-{effectIndex}"
-                                  >
-                                    <span
-                                      class="label-text text-xs font-semibold"
-                                      >Incentive</span
-                                    >
-                                  </label>
-                                  <select
-                                    id="incentive-{blockIndex}-{effectIndex}"
-                                    class="select select-sm select-bordered w-full font-mono text-xs"
-                                    value={effect.incentive?.id || ""}
-                                    onchange={(e) =>
-                                      updateIncentiveId(
-                                        blockIndex,
-                                        effectIndex,
-                                        e.target.value,
-                                      )}
-                                  >
-                                    <option value=""
-                                      >Select an incentive...</option
-                                    >
-                                    {#each availableIncentives as incentive}
-                                      <option value={incentive.id}
-                                        >{incentive.name ||
-                                          incentive.id}</option
-                                      >
-                                    {/each}
-                                  </select>
-                                  {#if availableIncentives.length === 0}
-                                    <div class="label py-0.5">
-                                      <span class="label-text-alt text-warning"
-                                        >No incentives available</span
-                                      >
-                                    </div>
-                                  {/if}
-                                </div>
-                              </div>
-                            {:else if effect.type === "POINTS_PROPORTIONAL"}
-                              <div
-                                class="space-y-2 pl-2 border-l-2 border-accent/20"
-                              >
-                                <!-- Points Proportional (JSON) -->
-                                <div class="form-control">
-                                  <label
-                                    class="label py-0.5"
-                                    for="points-prop-{blockIndex}-{effectIndex}"
-                                  >
-                                    <span
-                                      class="label-text text-xs font-semibold"
-                                      >Points Proportional Configuration (JSON)</span
-                                    >
-                                  </label>
-                                  <textarea
-                                    id="points-prop-{blockIndex}-{effectIndex}"
-                                    class="textarea textarea-sm textarea-bordered font-mono text-xs"
-                                    rows="3"
-                                    placeholder=""
-                                    value={effect.points_proportional
-                                      ? JSON.stringify(
-                                          effect.points_proportional,
-                                          null,
-                                          2,
-                                        )
-                                      : ""}
-                                    onblur={(e) =>
-                                      updatePointsProportional(
-                                        blockIndex,
-                                        effectIndex,
-                                        e.target.value,
-                                      )}
-                                  ></textarea>
-                                </div>
-                              </div>
-                            {/if}
-                          </div>
+                          <EarningEffectEditor
+                            {effect}
+                            {blockIndex}
+                            {effectIndex}
+                            {availableCardDefinitions}
+                            {availableIncentives}
+                            onUpdateType={(type) => updateEffectType(blockIndex, effectIndex, type)}
+                            onUpdatePointsValue={(val) => updatePointsValue(blockIndex, effectIndex, val)}
+                            onUpdatePointsCardDef={(val) => updatePointsCardDef(blockIndex, effectIndex, val)}
+                            onUpdatePointsExpiration={(val) => updatePointsExpiration(blockIndex, effectIndex, val)}
+                            onUpdateIncentiveId={(val) => updateIncentiveId(blockIndex, effectIndex, val)}
+                            onUpdatePointsProportional={(val) => updatePointsProportional(blockIndex, effectIndex, val)}
+                            onRemove={() => removeEffect(blockIndex, effectIndex)}
+                          />
                         {/each}
                       </div>
                     {/if}

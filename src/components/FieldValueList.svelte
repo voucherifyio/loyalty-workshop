@@ -5,6 +5,7 @@
    * Uses entity configuration to display only properties that belong to the entity
    */
   import { getEntityProperties } from "../config/entityProperties.js";
+  import CountBadge from "./shared/CountBadge.svelte";
 
   let { item = {}, entityType = "", cardDefinitions = [] } = $props();
 
@@ -139,9 +140,7 @@
             <div class="bg-base-200 rounded p-2 text-xs space-y-1">
               <div class="flex items-center gap-2">
                 <span class="font-semibold">Cost {cost.index}:</span>
-                <span class="badge badge-xs badge-ghost font-mono"
-                  >{cost.points} pts</span
-                >
+                <CountBadge count={cost.points} label="pts" className="font-mono" />
               </div>
               <div class="text-base-content/60">
                 From wallet: <span class="font-mono">{cost.cardName}</span>
@@ -193,11 +192,7 @@
             <div class="bg-base-200 rounded p-2 text-xs space-y-1">
               <div class="flex items-center gap-2">
                 <span class="font-semibold">{block.name}</span>
-                <span class="badge badge-xs badge-ghost"
-                  >{block.effectCount} effect{block.effectCount !== 1
-                    ? "s"
-                    : ""}</span
-                >
+                <CountBadge count={block.effectCount} label={block.effectCount !== 1 ? "effects" : "effect"} />
               </div>
               {#if block.effectsSummary}
                 <div class="text-base-content/60">

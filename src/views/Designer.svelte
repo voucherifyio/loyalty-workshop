@@ -3,6 +3,7 @@
   import { push } from "svelte-spa-router";
   import { api } from "../api/client.js";
   import { endpoints } from "../api/endpoints.js";
+  import * as entityCrudService from "../services/entityCrudService.js";
   import CreateEntityDrawer from "../components/CreateEntityDrawer.svelte";
   import EntityDrawer from "../components/EntityDrawer.svelte";
   import AssignmentSaveBar from "../components/AssignmentSaveBar.svelte";
@@ -17,13 +18,13 @@
   } from "../config/designerConfig.js";
   import { getTierStructureCardDefId } from "../utils/entityRelationships.js";
   import { getProgramClasses, getEntityClasses } from "../utils/entityStyles.js";
-  import { getEntityEndpoints } from "../utils/entityCrud.js";
   import { toast } from "../services/toast.js";
   import { selectionStore } from "../stores/designer/selection.svelte.js";
   import { paginationStore } from "../stores/designer/pagination.svelte.js";
   import { assignmentStore } from "../stores/designer/assignment.svelte.js";
   import { relationshipsStore } from "../stores/designer/relationships.svelte.js";
   import { setDesignerActions } from "../stores/designerActions.svelte.js";
+  import { createStoreCoordinator } from "../services/designerStoreCoordinator.js";
 
   // ── Core data state ──────────────────────────────────────────────────────
   let programs = $state([]);
@@ -75,7 +76,7 @@
   $effect(() => {
     const { id, type } = selectionStore.selection;
     // Avoid reading programs reactively during reset (untrack prevents extra runs)
-    assignmentStore.resetForSelection(id, type, untrack(() => programs));
+    storeCoord.resetForSelection(id, type, untrack(() => programs));
   });
 
   // Initial data load + countdown interval
@@ -83,6 +84,26 @@
     loadData();
     const interval = setInterval(() => paginationStore.updateCountdowns(), 1000);
     return () => clearInterval(interval);
+  });
+
+  // Auto-load tiers for all tier structures when they change
+  $effect(() => {
+    const tierStructureIds = entities.tierStructures?.map(ts => ts.id) || [];
+    
+    // Load tiers for tier structures that aren't already expanded
+    tierStructureIds.forEach(async (tsId) => {
+      if (!(tsId in expandedTierStructures)) {
+        // Set to undefined to show loading state
+        expandedTierStructures = { ...expandedTierStructures, [tsId]: undefined };
+        try {
+          const response = await api.get(endpoints.tierStructures.tiers.list(tsId));
+          expandedTierStructures = { ...expandedTierStructures, [tsId]: response.data || [] };
+        } catch {
+          // On error, set to empty array instead of showing loading forever
+          expandedTierStructures = { ...expandedTierStructures, [tsId]: [] };
+        }
+      }
+    });
   });
 
   // Expose actions to TopBar via store
@@ -124,10 +145,10 @@
     if (result?.programs) programs = result.programs;
     if (result?.entities) entities = result.entities;
     if (entityType !== 'programs') {
-      relationshipsStore.refreshCardRelationships(entities.earningRules, entities.tierStructures);
+      storeCoord.refreshCardRelationships(entities.earningRules, entities.tierStructures);
     }
     if (entityType === 'incentives') {
-      relationshipsStore.refreshIncentiveCards(entities.incentives);
+      storeCoord.refreshIncentiveCards(entities.incentives);
     }
   }
 
@@ -135,7 +156,7 @@
   async function changeEntityStatus(entityType, id, action, toStatus) {
     changingStatus = { type: entityType, id, action };
     try {
-      await api.post(getEntityEndpoints(entityType)[action](id));
+      await entityCrudService.changeEntityStatus(entityType, id, action);
       if (entityType === "programs") {
         programs = programs.map((p) => p.id === id ? { ...p, status: toStatus } : p);
       } else {
@@ -154,7 +175,13 @@
   async function deleteEntity(entityType, id) {
     deletingEntity = { type: entityType, id };
     try {
-      await api.delete(getEntityEndpoints(entityType).delete(id));
+      await entityCrudService.deleteEntity(entityType, id);
+      
+      // Close drawer if it's showing the deleted entity
+      if (entityDrawer.open && entityDrawer.entityType === entityType && entityDrawer.entityId === id) {
+        closeEntityDrawer();
+      }
+      
       removingCard = { type: entityType, id };
       setTimeout(() => {
         if (entityType === "programs") {
@@ -162,19 +189,19 @@
         } else {
           entities[entityType] = entities[entityType].filter((e) => e.id !== id);
         }
-        relationshipsStore.refreshUsage(programs);
+        storeCoord.refreshUsage(programs);
         if (entityType === "earningRules") {
-          relationshipsStore.removeEarningRule(id);
+          storeCoord.removeEarningRule(id);
         }
         if (["cardDefinitions", "earningRules", "tierStructures"].includes(entityType)) {
-          relationshipsStore.refreshCardRelationships(entities.earningRules, entities.tierStructures);
+          storeCoord.refreshCardRelationships(entities.earningRules, entities.tierStructures);
         }
         removingCard = null;
         if (
-          (entityType === "programs" && selectionStore.selection?.type === "program" && selectionStore.selection.id === id) ||
-          (selectionStore.selection?.type === "entity" && selectionStore.selection.category === entityType && selectionStore.selection.id === id)
+          (entityType === "programs" && storeCoord.selection?.type === "program" && storeCoord.selection.id === id) ||
+          (storeCoord.selection?.type === "entity" && storeCoord.selection.category === entityType && storeCoord.selection.id === id)
         ) {
-          selectionStore.clear();
+          storeCoord.clear();
         }
       }, 300);
       confirmingDelete = null;
@@ -190,18 +217,52 @@
   // ── Drawer helpers ────────────────────────────────────────────────────────
   function findEntityById(entityType, id) {
     if (entityType === "programs") return programs.find((p) => p.id === id) || null;
+    if (entityType === "tiers") {
+      // Tiers are nested in expandedTierStructures
+      for (const tiers of Object.values(expandedTierStructures)) {
+        if (Array.isArray(tiers)) {
+          const tier = tiers.find((t) => t.id === id);
+          if (tier) return tier;
+        }
+      }
+      return null;
+    }
     return (entities[entityType] || []).find((e) => e.id === id) || null;
   }
 
   function openDetailDrawer(entityType, id) {
     const item = findEntityById(entityType, id);
     if (!item) return;
+    
+    // For tiers, we need the tierStructureId for the endpoint
+    let updateEndpoint = "";
+    let activitiesEndpoint = "";
+    let prefillData = null;
+    
+    if (entityType === "tiers") {
+      // Find which tier structure this tier belongs to
+      let tierStructureId = null;
+      for (const [tsId, tiers] of Object.entries(expandedTierStructures)) {
+        if (Array.isArray(tiers) && tiers.find((t) => t.id === id)) {
+          tierStructureId = tsId;
+          break;
+        }
+      }
+      if (tierStructureId) {
+        updateEndpoint = endpoints.tierStructures.tiers.update(tierStructureId, id);
+        prefillData = { tierStructureId };
+      }
+    } else {
+      updateEndpoint = endpoints[entityType]?.update?.(id) || "";
+      activitiesEndpoint = endpoints[entityType]?.activities?.(id) || "";
+    }
+    
     entityDrawer = {
       open: true, activeTab: "details", entityType, entityId: id, item,
-      entityData: {},
-      updateEndpoint: endpoints[entityType]?.update?.(id) || "",
-      activitiesEndpoint: endpoints[entityType]?.activities?.(id) || "",
-      prefillData: null,
+      entityData: item, // Use the item data directly (no GET needed for tiers)
+      updateEndpoint,
+      activitiesEndpoint,
+      prefillData,
     };
   }
 
@@ -254,6 +315,12 @@
   async function deleteTier(tierStructureId, tierId) {
     try {
       await api.delete(endpoints.tierStructures.tiers.delete(tierStructureId, tierId));
+      
+      // Close drawer if it's showing the deleted tier
+      if (entityDrawer.open && entityDrawer.entityType === "tiers" && entityDrawer.entityId === tierId) {
+        closeEntityDrawer();
+      }
+      
       const response = await api.get(endpoints.tierStructures.tiers.list(tierStructureId));
       expandedTierStructures = { ...expandedTierStructures, [tierStructureId]: response.data || [] };
       toast.success('Tier deleted successfully');
@@ -263,16 +330,34 @@
     }
   }
 
+  async function refreshTiers(tierStructureId) {
+    // Refresh tiers for a specific tier structure
+    try {
+      expandedTierStructures = { ...expandedTierStructures, [tierStructureId]: undefined };
+      const response = await api.get(endpoints.tierStructures.tiers.list(tierStructureId));
+      expandedTierStructures = { ...expandedTierStructures, [tierStructureId]: response.data || [] };
+    } catch {
+      toast.error('Failed to load tiers');
+      const { [tierStructureId]: _, ...rest } = expandedTierStructures;
+      expandedTierStructures = rest;
+    }
+  }
+
   async function toggleTierStructureExpand(tierStructureId) {
     if (expandedTierStructures[tierStructureId]) {
       const { [tierStructureId]: _, ...rest } = expandedTierStructures;
       expandedTierStructures = rest;
     } else {
+      // Set to undefined to show loading indicator
+      expandedTierStructures = { ...expandedTierStructures, [tierStructureId]: undefined };
       try {
         const response = await api.get(endpoints.tierStructures.tiers.list(tierStructureId));
         expandedTierStructures = { ...expandedTierStructures, [tierStructureId]: response.data || [] };
       } catch {
         toast.error('Failed to load tiers');
+        // Remove from expanded on error
+        const { [tierStructureId]: _, ...rest } = expandedTierStructures;
+        expandedTierStructures = rest;
       }
     }
   }
@@ -281,8 +366,8 @@
     push(`/programs/${programId}`);
   }
 
-  function openCreateModal(entityType) {
-    createModal = { open: true, entityType, prefillData: null };
+  function openCreateModal(entityType, prefillData = null) {
+    createModal = { open: true, entityType, prefillData };
   }
   function openCreateTierForCardDef(cardDefId) {
     createModal = { open: true, entityType: "tierStructures", prefillData: { point_balance: { card_definition_id: cardDefId } } };
@@ -320,53 +405,30 @@
   // ── CSS class wrappers ────────────────────────────────────────────────────
   function entityClasses(entityType, entity) {
     return getEntityClasses(
-      entityType, entity, selectionStore.selection, removingCard, shakeCard,
-      relationshipsStore.earningRuleCards, relationshipsStore.tierStructureCards,
-      relationshipsStore.earningRuleIncentives, relationshipsStore.incentiveCards, programs
+      entityType, entity, storeCoord.selection, removingCard, shakeCard,
+      storeCoord.earningRuleCards, storeCoord.tierStructureCards,
+      storeCoord.earningRuleIncentives, storeCoord.incentiveCards, programs
     );
   }
   function programClasses(program) {
     return getProgramClasses(
-      program, selectionStore.selection, removingCard, shakeCard,
-      relationshipsStore.earningRuleIncentives, programs
+      program, storeCoord.selection, removingCard, shakeCard,
+      storeCoord.earningRuleIncentives, programs
     );
   }
 
-  // ── Assignment wrappers (pass runtime state to store methods) ─────────────
-  const sel = () => selectionStore.selection;
-  function isEntityAssigned(entityType, id) {
-    return assignmentStore.isEntityAssigned(entityType, id, sel(), programs);
-  }
-  function toggleEntityAssignment(entityType, id) {
-    assignmentStore.toggleEntityAssignment(entityType, id, sel(), programs);
-  }
-  function toggleTierStructureAssignment(id) {
-    assignmentStore.toggleTierStructureAssignment(id, sel(), programs, entities);
-  }
-  function handleCardDefinitionAssignmentToggle(cardDefId) {
-    assignmentStore.handleCardDefinitionToggle(cardDefId, entities, sel(), programs);
-  }
-  function getAssignedEntityIds(entityType) {
-    return assignmentStore.getAssignedEntityIds(entityType, sel(), programs);
-  }
-  function getRewardCardDefinitions() {
-    return assignmentStore.getRewardCardDefinitions(sel(), programs, entities);
-  }
-  function setRewardStock(rewardId, stockData) {
-    assignmentStore.setRewardStock(rewardId, stockData);
-  }
+  // ── Store coordinator ─────────────────────────────────────────────────────
+  const storeCoord = createStoreCoordinator(
+    { selectionStore, assignmentStore, relationshipsStore },
+    () => selectionStore.selection,
+    () => programs,
+    () => entities
+  );
+
+  // Wrapper for saveAllAssignments to trigger reactivity
   async function saveAllAssignments() {
-    await assignmentStore.saveAllAssignments(sel(), programs);
+    await storeCoord.saveAllAssignments();
     programs = [...programs]; // Trigger reactivity after in-place mutations
-  }
-  function cancelAllAssignments() {
-    assignmentStore.cancelAllAssignments();
-  }
-  function cancelTierStructureAssignPopover() {
-    assignmentStore.cancelTierStructureAssignPopover(sel(), programs);
-  }
-  function applyTierStructureAssignPopover(tierStructureId) {
-    assignmentStore.applyTierStructureAssignPopover(tierStructureId, sel(), programs, entities);
   }
 </script>
 
@@ -409,7 +471,7 @@
       {getAvailableStatusTransitions}
       onCreate={openCreateModal}
       onEdit={openEditModal}
-      onSelect={(id) => selectionStore.toggleProgram(id)}
+      onSelect={storeCoord.toggleProgram}
       onStartDelete={startDelete}
       onCancelDelete={cancelDelete}
       onDelete={deleteEntity}
@@ -425,11 +487,11 @@
   </div>
 
   <!-- Assignment Mode Info Banner -->
-  {#if selectionStore.assignmentActive}
-    {@const selectedProgram = programs.find(p => p.id === selectionStore.selection.id)}
+  {#if storeCoord.assignmentActive}
+    {@const selectedProgram = programs.find(p => p.id === storeCoord.selection.id)}
     <AssignmentModeInfo 
       programName={selectedProgram?.name || selectedProgram?.id || ''}
-      onClose={() => selectionStore.clear()}
+      onClose={storeCoord.clear}
     />
   {/if}
 
@@ -457,15 +519,15 @@
       {expandedTierStructures}
       loading={paginationStore.loading}
       hasMore={paginationStore.hasMore}
-      entityUsage={relationshipsStore.entityUsage}
+      entityUsage={storeCoord.entityUsage}
       {shakeCard}
       {removingCard}
-      assignmentActive={selectionStore.assignmentActive}
-      {isEntityAssigned}
-      {toggleTierStructureAssignment}
-      {toggleEntityAssignment}
-      onToggleCardDefinitionAssignment={handleCardDefinitionAssignmentToggle}
-      selection={selectionStore.selection}
+      assignmentActive={storeCoord.assignmentActive}
+      isEntityAssigned={storeCoord.isEntityAssigned}
+      toggleTierStructureAssignment={storeCoord.toggleTierStructureAssignment}
+      toggleEntityAssignment={storeCoord.toggleEntityAssignment}
+      onToggleCardDefinitionAssignment={storeCoord.handleCardDefinitionToggle}
+      selection={storeCoord.selection}
       getClasses={entityClasses}
       onCreate={openCreateModal}
       onCreateTierForCardDef={openCreateTierForCardDef}
@@ -475,7 +537,7 @@
       onDelete={deleteEntity}
       onDeleteTier={deleteTier}
       onStatusChange={changeEntityStatus}
-      onSelect={(cat, id) => selectionStore.toggleEntity(cat, id)}
+      onSelect={storeCoord.toggleEntity}
       onExpand={openDetailDrawer}
       onToggleTierExpand={toggleTierStructureExpand}
     />
@@ -489,44 +551,44 @@
     hasMore={paginationStore.hasMore}
     loadingMore={paginationStore.loadingMore}
     cursorCountdown={paginationStore.cursorCountdown}
-    entityUsage={relationshipsStore.entityUsage}
+    entityUsage={storeCoord.entityUsage}
     {shakeCard}
     {removingCard}
-    assignmentActive={selectionStore.assignmentActive}
-    {isEntityAssigned}
-    {toggleEntityAssignment}
-    {setRewardStock}
-    pendingChanges={assignmentStore.pendingChanges}
-    selection={selectionStore.selection}
-    earningRuleCards={relationshipsStore.earningRuleCards}
+    assignmentActive={storeCoord.assignmentActive}
+    isEntityAssigned={storeCoord.isEntityAssigned}
+    toggleEntityAssignment={storeCoord.toggleEntityAssignment}
+    setRewardStock={storeCoord.setRewardStock}
+    pendingChanges={storeCoord.pendingChanges}
+    selection={storeCoord.selection}
+    earningRuleCards={storeCoord.earningRuleCards}
     getClasses={entityClasses}
-    {getAssignedEntityIds}
-    {getRewardCardDefinitions}
+    getAssignedEntityIds={storeCoord.getAssignedEntityIds}
+    getRewardCardDefinitions={storeCoord.getRewardCardDefinitions}
     onCreate={openCreateModal}
     onStatusChange={changeEntityStatus}
-    onSelect={(cat, id) => selectionStore.toggleEntity(cat, id)}
+    onSelect={storeCoord.toggleEntity}
     onLoadMore={loadMore}
     onRefresh={refreshEntity}
     onExpand={openDetailDrawer}
   />
 </div>
 
-{#if assignmentStore.tierStructureAssignPopover}
+{#if storeCoord.tierStructureAssignPopover}
   <TierStructureAssignPopover
-    cardDefId={assignmentStore.tierStructureAssignPopover.cardDefId}
-    cardName={assignmentStore.tierStructureAssignPopover.cardName}
-    tierStructures={assignmentStore.tierStructureAssignPopover.options}
-    onApply={applyTierStructureAssignPopover}
-    onCancel={cancelTierStructureAssignPopover}
+    cardDefId={storeCoord.tierStructureAssignPopover.cardDefId}
+    cardName={storeCoord.tierStructureAssignPopover.cardName}
+    tierStructures={storeCoord.tierStructureAssignPopover.options}
+    onApply={storeCoord.applyTierStructureAssignPopover}
+    onCancel={storeCoord.cancelTierStructureAssignPopover}
   />
 {/if}
 
 <AssignmentSaveBar
-  active={selectionStore.assignmentActive}
-  hasPendingChanges={assignmentStore.hasPendingChanges}
-  pendingChanges={assignmentStore.pendingChanges}
+  active={storeCoord.assignmentActive}
+  hasPendingChanges={storeCoord.hasPendingChanges}
+  pendingChanges={storeCoord.pendingChanges}
   onSave={saveAllAssignments}
-  onDiscard={cancelAllAssignments}
+  onDiscard={storeCoord.cancelAllAssignments}
 />
 
 <CreateEntityDrawer
@@ -547,8 +609,7 @@
   onClose={closeCreateModal}
   onCreated={() => {
     if (createModal.entityType === "tiers" && createModal.prefillData?.tierStructureId) {
-      toggleTierStructureExpand(createModal.prefillData.tierStructureId);
-      toggleTierStructureExpand(createModal.prefillData.tierStructureId);
+      refreshTiers(createModal.prefillData.tierStructureId);
     } else {
       refreshEntity(createModal.entityType);
     }
@@ -567,20 +628,25 @@
   activitiesEndpoint={entityDrawer.activitiesEndpoint}
   prefillData={entityDrawer.prefillData || {}}
   {programs}
-  earningRuleIncentives={relationshipsStore.earningRuleIncentives}
-  earningRuleCards={relationshipsStore.earningRuleCards}
-  tierStructureCards={relationshipsStore.tierStructureCards}
+  earningRuleIncentives={storeCoord.earningRuleIncentives}
+  earningRuleCards={storeCoord.earningRuleCards}
+  tierStructureCards={storeCoord.tierStructureCards}
   {entities}
   onClose={closeEntityDrawer}
   onUpdated={() => {
     if (entityDrawer.prefillData?.tierStructureId) {
-      toggleTierStructureExpand(entityDrawer.prefillData.tierStructureId);
-      toggleTierStructureExpand(entityDrawer.prefillData.tierStructureId);
+      refreshTiers(entityDrawer.prefillData.tierStructureId);
     } else {
       refreshEntity(entityDrawer.entityType);
     }
   }}
-  onDelete={deleteEntity}
+  onDelete={async (entityType, id) => {
+    if (entityType === "tiers" && entityDrawer.prefillData?.tierStructureId) {
+      await deleteTier(entityDrawer.prefillData.tierStructureId, id);
+    } else {
+      await deleteEntity(entityType, id);
+    }
+  }}
   onStatusChange={async (entityType, id, action, toStatus) => {
     await changeEntityStatus(entityType, id, action, toStatus);
     openDetailDrawer(entityType, id);

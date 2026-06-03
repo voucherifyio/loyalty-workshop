@@ -1,5 +1,6 @@
 <script>
   import StatusBadge from '../StatusBadge.svelte';
+  import CountBadge from '../shared/CountBadge.svelte';
 
   let {
     usedByGroups = [],
@@ -15,7 +16,7 @@
         <div>
           <h4 class="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">
             {group.label}
-            <span class="badge badge-xs badge-ghost ml-1 normal-case">{group.items.length}</span>
+            <CountBadge count={group.items.length} className="ml-1 normal-case" />
           </h4>
           <div class="space-y-1">
             {#each group.items as ref (ref.id)}
