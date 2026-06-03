@@ -63,7 +63,7 @@
         {deletingEntity ? 'Deleting...' : 'Delete'}
       </button>
     {:else}
-      {#each transitions as transition}
+      {#each transitions as transition (transition.action)}
         <button
           class="btn btn-xs {transition.action === 'activate' ? 'btn-success' : transition.action === 'deactivate' ? 'btn-error' : 'btn-warning'}"
           onclick={() => confirmingAction = transition}

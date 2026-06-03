@@ -18,7 +18,7 @@
 
 <g class="axis-x" transform="translate(0, {$height})">
   {#if gridlines}
-    {#each tickValues as tick}
+    {#each tickValues as tick (tick)}
       <line
         x1={$xScale(tick)}
         x2={$xScale(tick)}
@@ -38,7 +38,7 @@
     style="stroke: color-mix(in oklch, var(--color-base-content) 20%, transparent)"
   />
 
-  {#each tickValues as tick}
+  {#each tickValues as tick (tick)}
     {@const x = $xScale(tick) + ($xScale.bandwidth ? $xScale.bandwidth() / 2 : 0)}
     <g transform="translate({x}, 0)">
       <line

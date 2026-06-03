@@ -65,36 +65,34 @@
 </script>
 
 <BaseModal {open} size="lg" onClose={handleCancel}>
-  {#snippet children()}
-    <ModalHeader title="Configure Examination Scenario" onClose={handleCancel} />
+  <ModalHeader title="Configure Examination Scenario" onClose={handleCancel} />
 
-    <div class="space-y-6">
-      <!-- Scenario Presets -->
-      <ExamineScenarioPresets {memberId} onPresetSelected={handlePresetSelected} />
+  <div class="space-y-6">
+    <!-- Scenario Presets -->
+    <ExamineScenarioPresets {memberId} onPresetSelected={handlePresetSelected} />
 
-      <!-- Payload Builder -->
-      {#if payload}
-        <ExaminePayloadBuilder
-          {memberId}
-          bind:payload
-          onValidationChange={handleValidationChange}
-        />
-      {/if}
-    </div>
+    <!-- Payload Builder -->
+    {#if payload}
+      <ExaminePayloadBuilder
+        {memberId}
+        bind:payload
+        onValidationChange={handleValidationChange}
+      />
+    {/if}
+  </div>
 
-    <!-- Actions -->
-    <div class="modal-action">
-      <button class="btn btn-outline" onclick={handleCancel}>Cancel</button>
-      <button
-        class="btn btn-primary"
-        onclick={handleRun}
-        disabled={!isPayloadValid}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
-        </svg>
-        Run Examination
-      </button>
-    </div>
-  {/snippet}
+  <!-- Actions -->
+  <div class="modal-action">
+    <button class="btn btn-outline" onclick={handleCancel}>Cancel</button>
+    <button
+      class="btn btn-primary"
+      onclick={handleRun}
+      disabled={!isPayloadValid}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+      </svg>
+      Run Examination
+    </button>
+  </div>
 </BaseModal>

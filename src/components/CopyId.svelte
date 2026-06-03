@@ -12,6 +12,7 @@
       clearTimeout(timeout);
       timeout = setTimeout(() => { copied = false; }, 1500);
     } catch {
+      // Clipboard API not available or permission denied
     }
   }
 </script>

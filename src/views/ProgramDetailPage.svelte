@@ -281,7 +281,7 @@
               </tr>
             </thead>
             <tbody>
-              {#each filteredMembers as member}
+              {#each filteredMembers as member (member.id)}
                 <tr class="hover:bg-base-300/50 transition-colors relative">
                   {#if confirmingDelete === member.id}
                     <td colspan="5" class="!p-0">
@@ -332,6 +332,7 @@
                         <button
                           class="btn btn-xs btn-circle btn-primary tooltip tooltip-left"
                           data-tip="View Details"
+                          aria-label="View member details"
                           onclick={() => handleMemberClick(member.id)}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3">
@@ -400,6 +401,7 @@
                         <button
                           class="btn btn-xs btn-circle btn-ghost tooltip tooltip-left"
                           data-tip="Delete"
+                          aria-label="Delete member"
                           onclick={(e) => {
                             e.stopPropagation();
                             confirmingDelete = member.id;

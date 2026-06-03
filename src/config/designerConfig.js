@@ -2,7 +2,7 @@ import { earningRuleHasQualificationRules } from '../utils/earningRuleSummary.js
 import { icons } from '../icons/index.js';
 
 // Entity type configuration - grouped by semantic sections
-const structureEntities = [
+const _structureEntities = [
   { key: "cardDefinitions", name: "Wallets" },
 ];
 

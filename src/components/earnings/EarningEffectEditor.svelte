@@ -91,7 +91,7 @@
           onchange={(e) => onUpdatePointsCardDef(e.target.value)}
         >
           <option value="">-- Select Card --</option>
-          {#each availableCardDefinitions as cd}
+          {#each availableCardDefinitions as cd (cd.id)}
             <option value={cd.id}>{cd.name || cd.id}</option>
           {/each}
         </select>
@@ -124,7 +124,7 @@
           onchange={(e) => onUpdateIncentiveId(e.target.value)}
         >
           <option value="">-- Select Incentive --</option>
-          {#each availableIncentives as inc}
+          {#each availableIncentives as inc (inc.id)}
             <option value={inc.id}>{inc.name || inc.id}</option>
           {/each}
         </select>

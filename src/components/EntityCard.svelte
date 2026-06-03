@@ -62,6 +62,7 @@
 </script>
 
 <div
+  role="article"
   class="card card-compact shadow-sm transition-all relative group {cssClasses} {isShaking
     ? 'animate-shake'
     : ''} {isRemoving ? 'animate-fadeout' : ''} {assignmentMode && isAssigned
@@ -78,6 +79,7 @@
     <label
       class="absolute top-2 left-2 z-10 cursor-pointer"
       onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); }}
       aria-label={isAssigned ? "Unassign" : "Assign"}
     >
       <input
@@ -99,8 +101,11 @@
     />
   {:else}
     <div
+      role="button"
+      tabindex="0"
       class="card-body p-3 cursor-pointer {assignmentMode ? 'pl-8' : ''}"
       onclick={() => onSelect(item.id)}
+      onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(item.id); } }}
     >
       <ActionToolbar
         {entityType}

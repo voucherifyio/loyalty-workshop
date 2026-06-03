@@ -184,7 +184,7 @@
           </button>
         </div>
 
-        {#each orderItems as item, i}
+        {#each orderItems as item, i (i)}
         <div class="bg-base-200 rounded-lg p-3 space-y-2">
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-semibold text-base-content/70">Item {i + 1}</span>

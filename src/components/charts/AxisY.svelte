@@ -15,7 +15,7 @@
 
 <g class="axis-y">
   {#if gridlines}
-    {#each tickValues as tick}
+    {#each tickValues as tick (tick)}
       <line
         x1={0}
         x2={$width}
@@ -37,7 +37,7 @@
     />
   {/if}
 
-  {#each tickValues as tick}
+  {#each tickValues as tick (tick)}
     <text
       x={-6}
       y={$yScale(tick)}

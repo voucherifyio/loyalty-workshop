@@ -17,7 +17,7 @@
       Cards <CountBadge count={cards.length} className="ml-1 normal-case" />
     </p>
     <div class="flex gap-3 overflow-x-auto pb-2">
-      {#each cards as mc, i}
+      {#each cards as mc (mc.card.id)}
         {@const card = mc.card}
         {@const tp = mc.tier_progress?.current}
         <div class="bg-base-100 rounded-lg p-3 min-w-48 shrink-0 shadow-sm flex flex-col">

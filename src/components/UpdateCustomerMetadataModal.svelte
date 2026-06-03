@@ -77,41 +77,35 @@
 </script>
 
 <BaseModal {open} size="md" onClose={handleClose}>
-  {#snippet children()}
-    <ModalHeader
-      title="Update Customer Metadata"
-      {subtitle}
-      onClose={handleClose}
-      disabled={submitting}
-    />
+  <ModalHeader
+    title="Update Customer Metadata"
+    {subtitle}
+    onClose={handleClose}
+    disabled={submitting}
+  />
 
-    <div class="card bg-base-200 p-4">
-      <div class="space-y-4">
-        <FormField label="Customer Metadata">
-          {#snippet children()}
-            <KeyValueEditor
-              bind:entries={metadataEntries}
-              disabled={submitting}
-              addButtonLabel="Add Metadata Entry"
-            />
-          {/snippet}
-        </FormField>
+  <div class="card bg-base-200 p-4">
+    <div class="space-y-4">
+      <FormField label="Customer Metadata">
+        <KeyValueEditor
+          bind:entries={metadataEntries}
+          disabled={submitting}
+          addButtonLabel="Add Metadata Entry"
+        />
+      </FormField>
 
-        <AlertBanner variant="info" title="Customer Metadata Update">
-          {#snippet children()}
-            <div class="text-sm">
-              Updates the customer's metadata. This will affect earning rule conditions and segmentation that rely on customer metadata.
-            </div>
-          {/snippet}
-        </AlertBanner>
-      </div>
+      <AlertBanner variant="info" title="Customer Metadata Update">
+        <div class="text-sm">
+          Updates the customer's metadata. This will affect earning rule conditions and segmentation that rely on customer metadata.
+        </div>
+      </AlertBanner>
     </div>
+  </div>
 
-    <ModalFooter
-      confirmLabel="Update Metadata"
-      loading={submitting}
-      onCancel={handleClose}
-      onConfirm={handleSubmit}
-    />
-  {/snippet}
+  <ModalFooter
+    confirmLabel="Update Metadata"
+    loading={submitting}
+    onCancel={handleClose}
+    onConfirm={handleSubmit}
+  />
 </BaseModal>

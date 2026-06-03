@@ -1,11 +1,13 @@
 <script>
+  import { SvelteSet } from 'svelte/reactivity';
+
   let {
-    filters = $bindable(new Set()),
+    filters = $bindable(new SvelteSet()),
     options = [],
   } = $props();
 
   function toggleFilter(value) {
-    const newFilters = new Set(filters);
+    const newFilters = new SvelteSet(filters);
     if (newFilters.has(value)) {
       newFilters.delete(value);
     } else {
@@ -22,7 +24,7 @@
     </p>
   </div>
   <div class="flex gap-2 flex-wrap">
-    {#each options as option}
+    {#each options as option (option.value)}
       <button
         class="btn btn-sm {filters.has(option.value) ? `btn-${option.variant}` : 'btn-outline'}"
         onclick={() => toggleFilter(option.value)}

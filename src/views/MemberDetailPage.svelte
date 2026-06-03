@@ -377,7 +377,7 @@
     <div class="bg-base-200/50 rounded-xl overflow-hidden">
       <!-- Tab Navigation -->
       <div class="tabs tabs-bordered border-b border-base-300 px-4 shrink-0 flex-wrap gap-y-1">
-        {#each TABS as tab}
+        {#each TABS as tab (tab.id)}
           <button
             class="tab tab-sm {activeTab === tab.id ? 'tab-active' : ''}"
             onclick={() => (activeTab = tab.id)}
@@ -397,7 +397,7 @@
                 Select Card
               </p>
               <div class="flex gap-2 flex-wrap">
-                {#each member.cards as mc, i}
+                {#each member.cards as mc, i (mc.card.id)}
                   {@const card = mc.card}
                   {@const isSelected = i === selectedCardIndex}
                   <button

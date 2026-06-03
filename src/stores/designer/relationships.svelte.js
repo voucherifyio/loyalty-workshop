@@ -167,7 +167,7 @@ class RelationshipsStore {
     const cardUsage = { earningRules: {}, tierStructures: {} };
 
     earningRules.forEach((rule) => {
-      const cardIds = new Set();
+      const cardIds = new Set(); // eslint-disable-line svelte/prefer-svelte-reactivity
       if (rule.earnings) {
         rule.earnings.forEach((earning) => {
           if (earning.effects) {

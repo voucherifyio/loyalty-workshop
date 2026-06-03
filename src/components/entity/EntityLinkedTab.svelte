@@ -11,7 +11,7 @@
 
 {#snippet entityGroupList(groups)}
   <div class="space-y-4">
-    {#each groups as group}
+    {#each groups as group (group.label)}
       {#if group.items.length > 0}
         <div>
           <h4 class="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">

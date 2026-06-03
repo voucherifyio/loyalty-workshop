@@ -1,4 +1,5 @@
 <script>
+  import { SvelteSet } from 'svelte/reactivity';
   import * as tierLoaderService from '../services/tierLoaderService.js';
   import CountBadge from './shared/CountBadge.svelte';
 
@@ -15,7 +16,7 @@
   
   // Cache for tiers by tier structure
   let tiersCache = $state({});
-  let loadingTiers = $state(new Set());
+  let loadingTiers = $state(new SvelteSet());
 
   // Initialize once when component mounts
   $effect(() => {
@@ -71,14 +72,14 @@
       return;
     }
 
-    loadingTiers = new Set([...loadingTiers, tierStructureId]);
+    loadingTiers = new SvelteSet([...loadingTiers, tierStructureId]);
     
     const tiers = await tierLoaderService.loadTiers(tierStructureId);
     if (tiers !== null) {
       tiersCache = { ...tiersCache, [tierStructureId]: tiers };
     }
 
-    const newLoading = new Set(loadingTiers);
+    const newLoading = new SvelteSet(loadingTiers);
     newLoading.delete(tierStructureId);
     loadingTiers = newLoading;
   }
@@ -192,7 +193,7 @@
               </p>
             </div>
           {:else}
-            {#each tierRules.any_of as entry, index}
+            {#each tierRules.any_of as entry, index (index)}
               {@const tierStructureId = entry.tier_structure_id}
               {@const tiers = tiersCache[tierStructureId] || []}
               {@const isLoadingTiers = loadingTiers.has(tierStructureId)}
@@ -228,7 +229,7 @@
                       onchange={(e) => updateTierStructure(index, e.target.value)}
                     >
                       <option value="">Select tier structure...</option>
-                      {#each availableTierStructures as ts}
+                      {#each availableTierStructures as ts (ts.id)}
                         <option value={ts.id}>{ts.name || ts.id}</option>
                       {/each}
                     </select>
@@ -255,7 +256,7 @@
                         </div>
                       {:else}
                         <div class="space-y-1 pl-1">
-                          {#each tiers as tier}
+                          {#each tiers as tier (tier.id)}
                             <label class="flex items-center gap-2 cursor-pointer hover:bg-base-300/50 p-1 rounded">
                               <input
                                 type="checkbox"

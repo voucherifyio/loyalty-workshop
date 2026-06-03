@@ -7,12 +7,9 @@
     onCancel = () => {},
   } = $props();
 
-  let selectedTierId = $state('__skip__');
-
-  $effect(() => {
-    selectedTierId =
-      tierStructures.length === 1 ? tierStructures[0].id : '__skip__';
-  });
+  let selectedTierId = $derived(
+    tierStructures.length === 1 ? tierStructures[0].id : '__skip__'
+  );
 
   function typeLabel(type) {
     if (type === 'POINT_BALANCE') return 'Balance';
@@ -63,7 +60,7 @@
           </span>
         </label>
 
-        {#each tierStructures as ts}
+        {#each tierStructures as ts (ts.id)}
           <label class="flex items-start gap-2 cursor-pointer rounded-lg border border-base-300 p-2 hover:bg-base-200/50">
             <input
               type="radio"

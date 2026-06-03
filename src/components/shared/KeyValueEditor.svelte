@@ -21,7 +21,7 @@
 </script>
 
 <div class="space-y-2">
-  {#each entries as entry, i}
+  {#each entries as entry, i (i)}
     <div class="flex gap-2 items-center">
       <input
         type="text"

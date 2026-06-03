@@ -118,7 +118,7 @@ export function getEarningRuleSummary(item) {
     if (hasRuleDefinitions(block.rules)) conditionalBlockCount += 1;
   }
 
-  let conditionalLabel = '';
+  let conditionalLabel;
   if (totalBlocks === 0) {
     conditionalLabel = '';
   } else if (conditionalBlockCount === 0) {

@@ -4,8 +4,8 @@
   const fmt = (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
   const now = Date.now();
-  const start = startDate ? new Date(startDate).getTime() : null;
-  const end = endDate ? new Date(endDate).getTime() : null;
+  const start = $derived(startDate ? new Date(startDate).getTime() : null);
+  const end = $derived(endDate ? new Date(endDate).getTime() : null);
   const progress = $derived((start && end) ? Math.min(Math.max((now - start) / (end - start), 0), 1) : null);
 </script>
 

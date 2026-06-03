@@ -326,7 +326,7 @@
           <button class="btn btn-xs btn-outline" onclick={addOrderItem}>
             Add Item
           </button>
-          {#each orderItems as item, i}
+          {#each orderItems as item, i (i)}
             <div class="bg-base-300 rounded p-2 text-xs space-y-2">
               <div class="flex justify-between">
                 <span class="font-semibold">Item {i + 1}</span>

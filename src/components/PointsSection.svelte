@@ -275,7 +275,7 @@
             </div>
             {#if allEffects.length > 0}
               <div class="space-y-1">
-                {#each allEffects.slice(0, 3) as effect}
+                {#each allEffects.slice(0, 3) as effect, index (index)}
                   <div class="flex items-center gap-1.5 flex-wrap text-[10px]">
                     {#if effect.type === 'POINTS' && effect.points}
                       <span class="badge badge-xs badge-primary">

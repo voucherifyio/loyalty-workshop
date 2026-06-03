@@ -107,7 +107,7 @@
     <div class="flex items-center gap-2 flex-wrap">
       <!-- Range presets -->
       <div class="join">
-        {#each RANGE_OPTIONS as opt}
+        {#each RANGE_OPTIONS as opt (opt.days)}
           <button
             class="join-item btn btn-xs {rangeDays === opt.days ? 'btn-primary' : 'btn-ghost'}"
             onclick={() => { rangeDays = opt.days; }}
@@ -122,7 +122,7 @@
         class="select select-xs select-bordered"
         bind:value={resolution}
       >
-        {#each RESOLUTION_OPTIONS as opt}
+        {#each RESOLUTION_OPTIONS as opt (opt.value)}
           <option value={opt.value}>{opt.label}</option>
         {/each}
       </select>
@@ -172,7 +172,7 @@
       <div class="bg-base-200 rounded-xl p-3">
         <!-- Legend -->
         <div class="flex flex-wrap gap-x-3 gap-y-1 mb-3">
-          {#each [...POS_KEYS, ...NEG_KEYS] as k}
+          {#each [...POS_KEYS, ...NEG_KEYS] as k (k)}
             {#if chartData.some(d => (d[k] || 0) > 0)}
               <span class="flex items-center gap-1 text-[9px] text-base-content/60">
                 <span class="inline-block w-2 h-2 rounded-sm" style="background:{FLOW_COLORS[k]}"></span>
@@ -193,17 +193,15 @@
             padding={{ top: 4, right: 8, bottom: 24, left: 40 }}
           >
               <Svg>
-              {#snippet children()}
-                <AxisY formatTick={fmtYTick} />
-                <AxisX ticks={filteredXTicks} formatTick={(d) => formatDateTick(d, resolution)} />
-                <StackedBars segments={flowSegments} colors={FLOW_COLORS} xKey="date" />
-                <HoverLayer
-                  onhover={({ bucket, clientX, clientY }) => {
-                    flowTip = { visible: true, clientX, clientY, bucket };
-                  }}
-                  onleave={() => { flowTip = { ...flowTip, visible: false }; }}
-                />
-              {/snippet}
+              <AxisY formatTick={fmtYTick} />
+              <AxisX ticks={filteredXTicks} formatTick={(d) => formatDateTick(d, resolution)} />
+              <StackedBars segments={flowSegments} colors={FLOW_COLORS} xKey="date" />
+              <HoverLayer
+                onhover={({ bucket, clientX, clientY }) => {
+                  flowTip = { visible: true, clientX, clientY, bucket };
+                }}
+                onleave={() => { flowTip = { ...flowTip, visible: false }; }}
+              />
             </Svg>
           </LayerCake>
         </div>
@@ -217,7 +215,7 @@
         <div class="bg-base-200 rounded-xl p-3">
           <!-- Legend -->
           <div class="flex flex-wrap gap-x-3 gap-y-1 mb-3">
-            {#each PENDING_SERIES as s}
+            {#each PENDING_SERIES as s (s.key)}
               <span class="flex items-center gap-1 text-[9px] text-base-content/60">
                 <span class="inline-block w-2 h-2 rounded-full" style="background:{s.color}"></span>
                 {s.label}
@@ -235,21 +233,19 @@
               padding={{ top: 4, right: 8, bottom: 24, left: 40 }}
             >
                 <Svg>
-                {#snippet children()}
-                  <AxisY formatTick={fmtYTick} />
-                  <AxisX ticks={filteredXTicks} formatTick={(d) => formatDateTick(d, resolution)} />
-                  <MultiLine
-                    series={PENDING_SERIES}
-                    xKey="date"
-                    dotRadius={flowXDomain.length > 30 ? 2 : 3}
-                  />
-                  <HoverLayer
-                    onhover={({ bucket, clientX, clientY }) => {
-                      pendTip = { visible: true, clientX, clientY, bucket };
-                    }}
-                    onleave={() => { pendTip = { ...pendTip, visible: false }; }}
-                  />
-                {/snippet}
+                <AxisY formatTick={fmtYTick} />
+                <AxisX ticks={filteredXTicks} formatTick={(d) => formatDateTick(d, resolution)} />
+                <MultiLine
+                  series={PENDING_SERIES}
+                  xKey="date"
+                  dotRadius={flowXDomain.length > 30 ? 2 : 3}
+                />
+                <HoverLayer
+                  onhover={({ bucket, clientX, clientY }) => {
+                    pendTip = { visible: true, clientX, clientY, bucket };
+                  }}
+                  onleave={() => { pendTip = { ...pendTip, visible: false }; }}
+                />
               </Svg>
             </LayerCake>
           </div>
@@ -270,7 +266,7 @@
     style="left: {tipLeft}px; top: {tipTop}px;"
   >
     <p class="font-bold text-base-content mb-1.5">{formatTooltipDate(b.date, resolution, formatDate)}</p>
-    {#each [...POS_KEYS, ...NEG_KEYS] as k}
+    {#each [...POS_KEYS, ...NEG_KEYS] as k (k)}
       {#if (b[k] || 0) > 0}
         <div class="flex items-center gap-1.5 mt-0.5">
           <span class="inline-block w-2 h-2 rounded-sm shrink-0" style="background: {FLOW_COLORS[k]}"></span>
@@ -291,7 +287,7 @@
     style="left: {tipLeft}px; top: {tipTop}px;"
   >
     <p class="font-bold text-base-content mb-1.5">{formatTooltipDate(b.date, resolution, formatDate)}</p>
-    {#each PENDING_SERIES as s}
+    {#each PENDING_SERIES as s (s.key)}
       {#if (b[s.key] || 0) > 0}
         <div class="flex items-center gap-1.5 mt-0.5">
           <span class="inline-block w-2 h-2 rounded-full shrink-0" style="background: {s.color}"></span>

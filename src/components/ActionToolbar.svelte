@@ -24,7 +24,7 @@
 
 <div class="absolute top-2 right-2 z-10">
   <div class="join join-horizontal bg-base-100/90 rounded-lg transition-opacity {hovered ? 'opacity-100' : 'opacity-0'}">
-    {#each transitions as transition}
+    {#each transitions as transition (transition.toStatus)}
       <button
         class="btn btn-xs btn-circle join-item tooltip tooltip-bottom {transition.icon === 'play' ? 'btn-success' : 'btn-error'}"
         data-tip={transition.label}

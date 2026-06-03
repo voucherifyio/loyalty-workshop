@@ -1,4 +1,5 @@
 <script>
+  import { SvelteSet } from 'svelte/reactivity';
   import TierRulesEditor from './TierRulesEditor.svelte';
   import CountBadge from './shared/CountBadge.svelte';
 
@@ -15,7 +16,7 @@
   let costs = $state([]);
 
   // Track which cost items are expanded
-  let expandedCosts = $state(new Set());
+  let expandedCosts = $state(new SvelteSet());
 
   // State for tier rules editor modal
   let tierRulesEditorOpen = $state(false);
@@ -31,13 +32,13 @@
         ...cost,
         tier_rules: cost.tier_rules || { type: 'NO_REQUIREMENTS', any_of: [] }
       }));
-      expandedCosts = new Set(costs.map((_, i) => i));
+      expandedCosts = new SvelteSet(costs.map((_, i) => i));
       initialized = true;
     }
   });
 
   function toggleExpand(index) {
-    const newExpanded = new Set(expandedCosts);
+    const newExpanded = new SvelteSet(expandedCosts);
     if (newExpanded.has(index)) {
       newExpanded.delete(index);
     } else {
@@ -58,13 +59,13 @@
       ],
     };
     costs = [...costs, newCost];
-    expandedCosts = new Set([...expandedCosts, costs.length - 1]);
+    expandedCosts = new SvelteSet([...expandedCosts, costs.length - 1]);
   }
 
   function removeCost(index) {
     costs = costs.filter((_, i) => i !== index);
     // Update expanded indices
-    const newExpanded = new Set();
+    const newExpanded = new SvelteSet();
     expandedCosts.forEach((i) => {
       if (i < index) newExpanded.add(i);
       else if (i > index) newExpanded.add(i - 1);
@@ -309,7 +310,7 @@
                             updateCardDefinition(index, e.target.value)}
                         >
                           <option value="">Select a wallet...</option>
-                          {#each availableCardDefinitions as cardDef}
+                          {#each availableCardDefinitions as cardDef (cardDef.id)}
                             <option value={cardDef.id}
                               >{cardDef.name || cardDef.id}</option
                             >

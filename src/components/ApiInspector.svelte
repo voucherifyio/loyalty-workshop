@@ -176,7 +176,7 @@
                   <div class="card-body p-4">
                     {#if getQueryParams(log.url)}
                       <div class="flex flex-wrap gap-2">
-                        {#each Object.entries(getQueryParams(log.url)) as [key, value]}
+                        {#each Object.entries(getQueryParams(log.url)) as [key, value] (key)}
                           <div class="badge badge-lg badge-outline gap-2">
                             <span class="font-semibold">{key}:</span>
                             <span class="font-mono">{value}</span>

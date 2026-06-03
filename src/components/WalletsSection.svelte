@@ -1,4 +1,5 @@
 <script>
+  import { SvelteSet } from 'svelte/reactivity';
   import ActionToolbar from "./ActionToolbar.svelte";
   import ConfirmationOverlay from "./ConfirmationOverlay.svelte";
   import CopyId from "./CopyId.svelte";
@@ -41,7 +42,7 @@
     onToggleTierExpand = () => {},
   } = $props();
 
-  let hoveredWallets = $state(new Set());
+  let hoveredWallets = $state(new SvelteSet());
 
   // Keyed by item ID — stores { action, toStatus, fromStatus } when awaiting confirmation
   let confirmingStatusChange = $state({});
@@ -88,7 +89,7 @@
     </p>
   {:else}
     <div class="flex gap-4 overflow-x-auto p-2">
-      {#each cardDefinitions as item}
+      {#each cardDefinitions as item (item.id)}
         {@const cardAssigned = isEntityAssigned("cardDefinitions", item.id)}
         {@const cdClasses = getClasses('cardDefinitions', item)}
         <div
@@ -102,10 +103,10 @@
             ? 'ring-2 ring-primary/40'
             : ''}"
           onmouseenter={() => {
-            hoveredWallets = new Set(hoveredWallets).add(item.id);
+            hoveredWallets = new SvelteSet(hoveredWallets).add(item.id);
           }}
           onmouseleave={() => {
-            const newSet = new Set(hoveredWallets);
+            const newSet = new SvelteSet(hoveredWallets);
             newSet.delete(item.id);
             hoveredWallets = newSet;
           }}
@@ -193,7 +194,7 @@
             <div class="divider my-2"></div>
 
             <!-- Tier Structures (compact) -->
-            {#each [tiersByCardDef()[item.id] || []] as cardTierStructures}
+            {#each [tiersByCardDef()[item.id] || []] as cardTierStructures, index (index)}
               <div class="pt-2">
                 <div class="flex items-center justify-between mb-2">
                   <span
@@ -228,16 +229,17 @@
 
                 {#if cardTierStructures.length > 0}
                   <div class="space-y-3">
-                    {#each cardTierStructures as tierStructure}
+                    {#each cardTierStructures as tierStructure (tierStructure.id)}
                       {@const tsAssigned = isEntityAssigned("tierStructures", tierStructure.id)}
                       <div
+                        role="group"
                         onmouseenter={() => {
-                          hoveredWallets = new Set(hoveredWallets).add(
+                          hoveredWallets = new SvelteSet(hoveredWallets).add(
                             tierStructure.id,
                           );
                         }}
                         onmouseleave={() => {
-                          const s = new Set(hoveredWallets);
+                          const s = new SvelteSet(hoveredWallets);
                           s.delete(tierStructure.id);
                           hoveredWallets = s;
                         }}

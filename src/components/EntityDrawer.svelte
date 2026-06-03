@@ -31,7 +31,7 @@
     onNavigate = () => {},
   } = $props();
 
-  // Local tab state
+  // Local tab state - sync with activeTab prop
   let currentTab = $state(activeTab);
 
   // Derive parent tier structure status if editing a tier

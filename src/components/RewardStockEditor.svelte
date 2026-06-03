@@ -6,8 +6,14 @@
     onClose = () => {},
   } = $props();
 
-  let stockType = $state(existingStock?.type ?? 'UNLIMITED');
-  let quantity = $state(existingStock?.limited?.quantity ?? 0);
+  let stockType = $state('UNLIMITED');
+  let quantity = $state(0);
+  
+  // Initialize from prop
+  $effect(() => {
+    stockType = existingStock?.type ?? 'UNLIMITED';
+    quantity = existingStock?.limited?.quantity ?? 0;
+  });
 
   const canConfirm = $derived(stockType === 'UNLIMITED' || (stockType === 'LIMITED' && quantity > 0));
 

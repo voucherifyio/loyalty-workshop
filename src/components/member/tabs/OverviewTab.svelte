@@ -26,8 +26,6 @@
     onExpirePoints,
     onToggleRow,
   } = $props();
-
-  const JSON_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" /></svg>`;
 </script>
 
 {#if isMemberMode}
@@ -37,7 +35,7 @@
     <div>
       <div class="mb-3">
         <SectionHeading>
-          {#snippet children()}Member Details{/snippet}
+          Member Details
         </SectionHeading>
       </div>
       <div
@@ -67,14 +65,12 @@
       <div>
         <div class="mb-3">
           <SectionHeading>
-            {#snippet children()}
-              Cards
-              <CountBadge count={member.cards.length} className="ml-1 normal-case" />
-            {/snippet}
+            Cards
+            <CountBadge count={member.cards.length} className="ml-1 normal-case" />
           </SectionHeading>
         </div>
         <div class="space-y-2">
-          {#each member.cards as mc}
+          {#each member.cards as mc (mc.card.id)}
             {@const card = mc.card}
             {@const tp = mc.tier_progress?.current}
             {@const tpPct = tp

@@ -1,4 +1,5 @@
 <script>
+  import { SvelteMap } from 'svelte/reactivity';
   import { formatNum } from '../../utils/transactionFormatting.js';
   import PurchaseRewardModal from '../PurchaseRewardModal.svelte';
   import JsonDisplay from '../shared/JsonDisplay.svelte';
@@ -66,7 +67,7 @@
     if (!results || !results.memberships?.[0]) return [];
     
     const membership = results.memberships[0];
-    const rewardMap = new Map();
+    const rewardMap = new SvelteMap();
 
     membership.cards?.forEach(cardEst => {
       cardEst.rewards?.forEach(rewardEst => {
@@ -196,7 +197,7 @@
     {#if groupBy === 'card'}
       <!-- Group by Card View -->
       <div class="space-y-4">
-        {#each byCard() as cardData}
+        {#each byCard() as cardData (cardData.card.id)}
           <div class="bg-base-200 rounded-xl p-4">
             <div class="flex items-start justify-between mb-3">
               <div>
@@ -210,7 +211,7 @@
 
             {#if cardData.rewards.length > 0}
               <div class="space-y-2">
-                {#each cardData.rewards as rewardEst}
+                {#each cardData.rewards as rewardEst (rewardEst.reward.id)}
                   <div class="bg-base-300 rounded p-3">
                     <div class="flex items-start justify-between mb-2">
                       <div class="flex-1">
@@ -237,7 +238,7 @@
 
                     {#if rewardEst.unavailability_reasons && rewardEst.unavailability_reasons.length > 0}
                       <div class="space-y-1 mt-2">
-                        {#each rewardEst.unavailability_reasons as reason}
+                        {#each rewardEst.unavailability_reasons as reason, index (index)}
                           {@const display = getUnavailabilityDisplay(reason)}
                           <div class="alert {display.class} py-2">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0">
@@ -266,7 +267,7 @@
     {:else if groupBy === 'reward'}
       <!-- Group by Reward View -->
       <div class="space-y-4">
-        {#each byReward() as rewardData}
+        {#each byReward() as rewardData (rewardData.rewardDetails.id)}
           <div class="bg-base-200 rounded-xl p-4">
             <div class="flex items-start justify-between mb-3">
               <div>
@@ -279,7 +280,7 @@
             </div>
 
             <div class="space-y-2">
-              {#each rewardData.cardEstimations as cardEst}
+              {#each rewardData.cardEstimations as cardEst (cardEst.card.id)}
                 <div class="flex items-center justify-between bg-base-300 rounded p-2">
                   <div>
                     <p class="text-sm font-mono">{cardEst.card.code || cardEst.card.id}</p>
@@ -303,7 +304,7 @@
                 </div>
                 {#if cardEst.unavailability_reasons && cardEst.unavailability_reasons.length > 0}
                   <div class="ml-4 space-y-1">
-                    {#each cardEst.unavailability_reasons as reason}
+                    {#each cardEst.unavailability_reasons as reason, index (index)}
                       {@const display = getUnavailabilityDisplay(reason)}
                       <div class="text-xs text-base-content/60">
                         ↳ {display.text}
@@ -328,7 +329,7 @@
           </div>
           {#if availabilityData.available.length > 0}
             <div class="space-y-2">
-              {#each availabilityData.available as item}
+              {#each availabilityData.available as item (`${item.card.id}-${item.reward.id}`)}
                 <div class="bg-base-300 rounded p-3 flex items-center justify-between">
                   <div>
                     <p class="font-semibold">{item.rewardDetails.name}</p>
@@ -361,7 +362,7 @@
           </div>
           {#if availabilityData.unavailable.length > 0}
             <div class="space-y-2">
-              {#each availabilityData.unavailable as item}
+              {#each availabilityData.unavailable as item (`${item.card.id}-${item.reward.id}`)}
                 <div class="bg-base-300 rounded p-3">
                   <div class="flex items-center justify-between mb-2">
                     <div>
@@ -374,7 +375,7 @@
                   </div>
                   {#if item.unavailability_reasons && item.unavailability_reasons.length > 0}
                     <div class="space-y-1">
-                      {#each item.unavailability_reasons as reason}
+                      {#each item.unavailability_reasons as reason, index (index)}
                         {@const display = getUnavailabilityDisplay(reason)}
                         <div class="text-xs text-base-content/60">
                           ↳ {display.text}

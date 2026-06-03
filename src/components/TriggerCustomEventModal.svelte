@@ -84,59 +84,53 @@
 </script>
 
 <BaseModal {open} size="md" onClose={handleClose}>
-  {#snippet children()}
-    <ModalHeader
-      title="Trigger Custom Event"
-      {subtitle}
-      onClose={handleClose}
-      disabled={submitting}
-    />
+  <ModalHeader
+    title="Trigger Custom Event"
+    {subtitle}
+    onClose={handleClose}
+    disabled={submitting}
+  />
 
-    <div class="space-y-4">
-      <div class="card bg-base-200 p-4">
-        <div class="grid grid-cols-[120px_1fr] gap-x-4 gap-y-4 items-start">
-          <span class="text-sm text-base-content/70 pt-3">Event Type</span>
-          <input
-            type="text"
-            class="input input-bordered font-mono w-full"
-            bind:value={eventType}
-            placeholder="e.g., customer.custom_event_name"
-            disabled={submitting}
-          />
+  <div class="space-y-4">
+    <div class="card bg-base-200 p-4">
+      <div class="grid grid-cols-[120px_1fr] gap-x-4 gap-y-4 items-start">
+        <span class="text-sm text-base-content/70 pt-3">Event Type</span>
+        <input
+          type="text"
+          class="input input-bordered font-mono w-full"
+          bind:value={eventType}
+          placeholder="e.g., customer.custom_event_name"
+          disabled={submitting}
+        />
 
-          <span class="text-sm text-base-content/70 pt-2">Event Metadata</span>
-          <KeyValueEditor
-            bind:entries={metadataEntries}
-            disabled={submitting}
-            addButtonLabel="Add Metadata Entry"
-          />
-        </div>
+        <span class="text-sm text-base-content/70 pt-2">Event Metadata</span>
+        <KeyValueEditor
+          bind:entries={metadataEntries}
+          disabled={submitting}
+          addButtonLabel="Add Metadata Entry"
+        />
       </div>
-
-      <AlertBanner variant="info" title="Earning Rules Trigger">
-        {#snippet children()}
-          <div class="text-sm">
-            Triggers custom event to activate earning rules configured for
-            this event type
-          </div>
-        {/snippet}
-      </AlertBanner>
-
-      {#if error}
-        <AlertBanner variant="error" title="Error">
-          {#snippet children()}
-            <pre class="text-xs mt-1">{error}</pre>
-          {/snippet}
-        </AlertBanner>
-      {/if}
     </div>
 
-    <ModalFooter
-      confirmLabel="Trigger Event"
-      loading={submitting}
-      confirmDisabled={!isValid()}
-      onCancel={handleClose}
-      onConfirm={handleSubmit}
-    />
-  {/snippet}
+    <AlertBanner variant="info" title="Earning Rules Trigger">
+      <div class="text-sm">
+        Triggers custom event to activate earning rules configured for
+        this event type
+      </div>
+    </AlertBanner>
+
+    {#if error}
+      <AlertBanner variant="error" title="Error">
+        <pre class="text-xs mt-1">{error}</pre>
+      </AlertBanner>
+    {/if}
+  </div>
+
+  <ModalFooter
+    confirmLabel="Trigger Event"
+    loading={submitting}
+    confirmDisabled={!isValid()}
+    onCancel={handleClose}
+    onConfirm={handleSubmit}
+  />
 </BaseModal>

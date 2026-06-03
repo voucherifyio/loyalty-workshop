@@ -4,7 +4,7 @@
     onPresetSelected = (payload) => {}
   } = $props();
 
-  const presets = [
+  const presets = $derived([
     {
       id: 'basic',
       name: 'Basic Examination',
@@ -69,7 +69,7 @@
         }
       }
     }
-  ];
+  ]);
 
   function selectPreset(preset) {
     // Update member_id in the payload before passing
@@ -88,7 +88,7 @@
   </div>
 
   <div class="grid grid-cols-2 gap-2">
-    {#each presets as preset}
+    {#each presets as preset (preset.name)}
       <button
         class="btn btn-outline btn-sm justify-start h-auto py-2 text-left"
         onclick={() => selectPreset(preset)}

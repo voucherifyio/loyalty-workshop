@@ -35,6 +35,7 @@
     <div class="p-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
+          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
           {@html icon}
           <h2 class="text-lg font-bold">{name} ({items.length})</h2>
         </div>

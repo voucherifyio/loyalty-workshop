@@ -113,7 +113,7 @@
   <div class="navbar-start">
     <div class="text-xs breadcrumbs px-4">
       <ul>
-        {#each breadcrumbs as crumb, i}
+        {#each breadcrumbs as crumb, i (i)}
           <li>
             {#if i === breadcrumbs.length - 1}
               <span class="text-base-content/60">{crumb.label}</span>
@@ -181,7 +181,7 @@
       value={theme.current}
       onchange={(e) => theme.setCurrent(e.target.value)}
     >
-      {#each themes as t}
+      {#each themes as t (t)}
         <option value={t}>{t}</option>
       {/each}
     </select>

@@ -125,7 +125,7 @@
   {/if}
 
   <!-- Display only configured properties -->
-  {#each displayFields as [key, value]}
+  {#each displayFields as [key, value] (key)}
     <span class="text-base-content/50 pt-2 break-all">{key}</span>
     {#if key === "costs" && entityType === "rewards"}
       <!-- Special rendering for reward costs -->
@@ -136,7 +136,7 @@
             {formattedCosts.length} cost{formattedCosts.length !== 1 ? "s" : ""}
             configured
           </div>
-          {#each formattedCosts as cost}
+          {#each formattedCosts as cost (cost.index)}
             <div class="bg-base-200 rounded p-2 text-xs space-y-1">
               <div class="flex items-center gap-2">
                 <span class="font-semibold">Cost {cost.index}:</span>
@@ -188,7 +188,7 @@
               ? "s"
               : ""} configured
           </div>
-          {#each formattedEarnings as block}
+          {#each formattedEarnings as block, index (index)}
             <div class="bg-base-200 rounded p-2 text-xs space-y-1">
               <div class="flex items-center gap-2">
                 <span class="font-semibold">{block.name}</span>

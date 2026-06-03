@@ -102,39 +102,35 @@
 </script>
 
 <BaseModal {open} size="md" onClose={handleClose}>
-  {#snippet children()}
-    <ModalHeader
-      title="Select or Create Order"
-      onClose={handleClose}
-      disabled={submitting}
+  <ModalHeader
+    title="Select or Create Order"
+    onClose={handleClose}
+    disabled={submitting}
+  />
+
+  <div class="space-y-4">
+    <OrderInputForm
+      bind:mode={orderMode}
+      {customerId}
+      bind:orderRefType
+      bind:orderRefValue
+      bind:orderAmount
+      bind:createMode
+      bind:orderItems
     />
 
-    <div class="space-y-4">
-      <OrderInputForm
-        bind:mode={orderMode}
-        {customerId}
-        bind:orderRefType
-        bind:orderRefValue
-        bind:orderAmount
-        bind:createMode
-        bind:orderItems
-      />
+    {#if error}
+      <AlertBanner variant="error" title="Error">
+        <pre class="text-xs mt-1">{error}</pre>
+      </AlertBanner>
+    {/if}
+  </div>
 
-      {#if error}
-        <AlertBanner variant="error" title="Error">
-          {#snippet children()}
-            <pre class="text-xs mt-1">{error}</pre>
-          {/snippet}
-        </AlertBanner>
-      {/if}
-    </div>
-
-    <ModalFooter
-      {confirmLabel}
-      loading={submitting}
-      confirmDisabled={!isValid()}
-      onCancel={handleClose}
-      onConfirm={handleConfirm}
-    />
-  {/snippet}
+  <ModalFooter
+    {confirmLabel}
+    loading={submitting}
+    confirmDisabled={!isValid()}
+    onCancel={handleClose}
+    onConfirm={handleConfirm}
+  />
 </BaseModal>

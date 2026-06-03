@@ -19,7 +19,7 @@
       <h4 class="text-sm font-semibold">Global Tier Structures ({tierStructures.length})</h4>
     </div>
     <div class="space-y-2">
-      {#each tierStructures as ts}
+      {#each tierStructures as ts (ts.id)}
         <div class="bg-base-100 rounded p-2 text-xs flex flex-col gap-2">
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 min-w-0">

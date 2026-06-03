@@ -32,7 +32,7 @@
     />
   {/if}
 
-  {#each segments as seg}
+  {#each segments as seg (`${seg.key}-${seg[xKey]}`)}
     {@const x = $xScale(seg[xKey])}
     {@const y_hi = Math.min($yScale(seg.y0), $yScale(seg.y1))}
     {@const y_lo = Math.max($yScale(seg.y0), $yScale(seg.y1))}

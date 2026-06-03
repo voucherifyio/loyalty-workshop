@@ -21,51 +21,49 @@
 </script>
 
 <BaseModal {open} size="md" {onClose}>
-  {#snippet children()}
-    <ModalHeader
-      title="Adjust Points"
-      {subtitle}
-      {onClose}
-      disabled={adjusting}
-    />
+  <ModalHeader
+    title="Adjust Points"
+    {subtitle}
+    {onClose}
+    disabled={adjusting}
+  />
 
-    <div class="card bg-base-200 p-4">
-      <div class="space-y-4">
-        <div class="form-control">
-          <label class="label" for="adjust-points-value">
-            <span class="label-text font-medium">Points</span>
-            <span class="label-text-alt text-base-content/50">Use negative to subtract</span>
-          </label>
-          <input
-            id="adjust-points-value"
-            type="number"
-            class="input input-bordered"
-            bind:value={adjustPointsValue}
-            placeholder="e.g., 100 or -50"
-          />
-        </div>
-        <div class="form-control">
-          <label class="label" for="adjust-points-reason">
-            <span class="label-text font-medium">Reason</span>
-            <span class="label-text-alt text-base-content/50">Optional</span>
-          </label>
-          <input
-            id="adjust-points-reason"
-            type="text"
-            class="input input-bordered"
-            bind:value={adjustPointsReason}
-            placeholder="Manual adjustment"
-          />
-        </div>
+  <div class="card bg-base-200 p-4">
+    <div class="space-y-4">
+      <div class="form-control">
+        <label class="label" for="adjust-points-value">
+          <span class="label-text font-medium">Points</span>
+          <span class="label-text-alt text-base-content/50">Use negative to subtract</span>
+        </label>
+        <input
+          id="adjust-points-value"
+          type="number"
+          class="input input-bordered"
+          bind:value={adjustPointsValue}
+          placeholder="e.g., 100 or -50"
+        />
+      </div>
+      <div class="form-control">
+        <label class="label" for="adjust-points-reason">
+          <span class="label-text font-medium">Reason</span>
+          <span class="label-text-alt text-base-content/50">Optional</span>
+        </label>
+        <input
+          id="adjust-points-reason"
+          type="text"
+          class="input input-bordered"
+          bind:value={adjustPointsReason}
+          placeholder="Manual adjustment"
+        />
       </div>
     </div>
+  </div>
 
-    <ModalFooter
-      confirmLabel="Apply"
-      loading={adjusting}
-      confirmDisabled={!adjustPointsValue}
-      onCancel={onClose}
-      onConfirm={onConfirm}
-    />
-  {/snippet}
+  <ModalFooter
+    confirmLabel="Apply"
+    loading={adjusting}
+    confirmDisabled={!adjustPointsValue}
+    onCancel={onClose}
+    onConfirm={onConfirm}
+  />
 </BaseModal>

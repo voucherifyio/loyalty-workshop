@@ -1,4 +1,5 @@
 <script>
+  import { SvelteSet } from 'svelte/reactivity';
   import ActionToolbar from "./ActionToolbar.svelte";
   import ConfirmationOverlay from "./ConfirmationOverlay.svelte";
   import StatusBadge from "./StatusBadge.svelte";
@@ -35,7 +36,7 @@
     onRefresh = () => {},
   } = $props();
 
-  let hoveredPrograms = $state(new Set());
+  let hoveredPrograms = $state(new SvelteSet());
 </script>
 
 <!-- Programs Section -->
@@ -52,7 +53,7 @@
       </p>
     {:else}
       <div class="flex gap-4 overflow-x-auto p-2">
-        {#each programs as program}
+        {#each programs as program (program.id)}
           {@const pgClasses = getClasses(program)}
           <div
             role="group"
@@ -64,12 +65,12 @@
               : ''} min-w-96 shrink-0"
             onmouseenter={() => {
               if (!confirmingDelete && !confirmingStatusChange) {
-                hoveredPrograms = new Set(hoveredPrograms).add(program.id);
+                hoveredPrograms = new SvelteSet(hoveredPrograms).add(program.id);
               }
             }}
             onmouseleave={() => {
               if (!confirmingDelete && !confirmingStatusChange) {
-                const newSet = new Set(hoveredPrograms);
+                const newSet = new SvelteSet(hoveredPrograms);
                 newSet.delete(program.id);
                 hoveredPrograms = newSet;
               }

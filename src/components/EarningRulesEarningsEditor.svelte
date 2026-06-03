@@ -1,4 +1,5 @@
 <script>
+  import { SvelteSet } from 'svelte/reactivity';
   import TierRulesEditor from './TierRulesEditor.svelte';
   import EarningEffectEditor from './earnings/EarningEffectEditor.svelte';
 
@@ -16,7 +17,7 @@
   let earnings = $state([]);
 
   // Track which earning blocks are expanded
-  let expandedBlocks = $state(new Set());
+  let expandedBlocks = $state(new SvelteSet());
 
   // State for tier rules editor modal
   let tierRulesEditorOpen = $state(false);
@@ -32,13 +33,13 @@
         ...block,
         tier_rules: block.tier_rules || { type: 'NO_REQUIREMENTS', any_of: [] }
       }));
-      expandedBlocks = new Set(earnings.map((_, i) => i));
+      expandedBlocks = new SvelteSet(earnings.map((_, i) => i));
       initialized = true;
     }
   });
 
   function toggleExpand(index) {
-    const newExpanded = new Set(expandedBlocks);
+    const newExpanded = new SvelteSet(expandedBlocks);
     if (newExpanded.has(index)) {
       newExpanded.delete(index);
     } else {
@@ -55,13 +56,13 @@
       effects: [],
     };
     earnings = [...earnings, newBlock];
-    expandedBlocks = new Set([...expandedBlocks, earnings.length - 1]);
+    expandedBlocks = new SvelteSet([...expandedBlocks, earnings.length - 1]);
   }
 
   function removeEarningBlock(index) {
     earnings = earnings.filter((_, i) => i !== index);
     // Update expanded indices
-    const newExpanded = new Set();
+    const newExpanded = new SvelteSet();
     expandedBlocks.forEach((i) => {
       if (i < index) newExpanded.add(i);
       else if (i > index) newExpanded.add(i - 1);

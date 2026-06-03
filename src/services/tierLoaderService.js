@@ -29,7 +29,8 @@ export async function loadTiers(tierStructureId) {
     tiersCache[tierStructureId] = tiers;
     return tiers;
   } catch (err) {
-    console.error('Failed to load tiers:', err);
+    // Log error but don't throw - return empty array for graceful degradation
+    console.error('Failed to load tiers:', err); // eslint-disable-line no-console
     tiersCache[tierStructureId] = [];
     return [];
   } finally {

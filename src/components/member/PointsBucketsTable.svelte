@@ -15,8 +15,6 @@
     onToggleRow = () => {},
   } = $props();
 
-  const JSON_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" /></svg>`;
-
   const title = $derived(type === 'pending' ? 'Pending Points' : 'Expiring Points');
   const emptyMessage = $derived(type === 'pending' ? 'No pending points' : 'No expiring points');
   const colspan = $derived(type === 'pending' ? 6 : 7);
@@ -54,7 +52,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each buckets as bucket}
+          {#each buckets as bucket (bucket.id)}
             <tr class="hover:bg-base-200/50">
               <td class="font-mono text-[10px] text-base-content/50">{bucket.id}</td>
               <td class="font-bold">{formatNum(bucket.points?.total)}</td>
@@ -113,7 +111,9 @@
                   onclick={() => onToggleRow(bucket.id)}
                   title="Toggle JSON"
                 >
-                  {@html JSON_ICON}
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                  </svg>
                 </button>
               </td>
             </tr>

@@ -15,19 +15,15 @@
     onToggleRow,
     onOpenRefund,
   } = $props();
-
-  const JSON_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" /></svg>`;
 </script>
 
 <div>
   <div class="mb-3">
     <SectionHeading>
-      {#snippet children()}
-        All Transactions
-        {#if items.length > 0}
-          <CountBadge count={items.length} className="ml-1 normal-case" />
-        {/if}
-      {/snippet}
+      All Transactions
+      {#if items.length > 0}
+        <CountBadge count={items.length} className="ml-1 normal-case" />
+      {/if}
     </SectionHeading>
   </div>
 
@@ -42,7 +38,7 @@
           <tr><th>Date</th><th>Source</th><th>Type</th><th>Points</th><th>Status</th><th>ID</th><th>Actions</th><th></th></tr>
         </thead>
         <tbody>
-          {#each items as tx}
+          {#each items as tx (tx.id)}
             {@const sourceColor = tx._source === 'Card' ? 'badge-info' : tx._source === 'Reward' ? 'badge-accent' : tx._source === 'Order' ? 'badge-warning' : tx._source === 'Tier' ? 'badge-secondary' : 'badge-success'}
             {@const pts = tx._source === 'Card' ? getSignedPoints(tx) : tx._source === 'Reward' ? -(tx.details?.points?.total || 0) : tx._source === 'Order' ? -(tx.details?.payment?.points_spent || 0) : tx._source === 'Tier' ? tx.details?.points : null}
             {@const canRefund = tx._source === 'Reward' && tx.status === 'APPROVED' && tx.type === 'PURCHASE'}
@@ -81,7 +77,9 @@
               </td>
               <td>
                 <button class="btn btn-circle btn-xs btn-ghost" onclick={() => onToggleRow(tx.id)} title="JSON">
-                  {@html JSON_ICON}
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                  </svg>
                 </button>
               </td>
             </tr>
@@ -104,7 +102,9 @@
                 <td></td>
                 <td>
                   <button class="btn btn-circle btn-xs btn-ghost opacity-50" onclick={() => onToggleRow(child.id)} title="JSON">
-                    {@html JSON_ICON}
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                    </svg>
                   </button>
                 </td>
               </tr>

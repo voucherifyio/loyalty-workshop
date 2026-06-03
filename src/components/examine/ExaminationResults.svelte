@@ -1,4 +1,5 @@
 <script>
+  import { SvelteMap } from 'svelte/reactivity';
   import { formatNum } from '../../utils/transactionFormatting.js';
   import JsonDisplay from '../shared/JsonDisplay.svelte';
 
@@ -16,7 +17,7 @@
     if (!results || !results.memberships?.[0]) return [];
     
     const membership = results.memberships[0];
-    const earningRuleMap = new Map();
+    const earningRuleMap = new SvelteMap();
 
     // Process cards
     membership.cards?.forEach(cardEst => {
@@ -145,7 +146,7 @@
     {#if groupBy === 'earning_rule'}
       <!-- Group by Earning Rule View -->
       <div class="space-y-4">
-        {#each byEarningRule() as rule}
+        {#each byEarningRule() as rule (rule.id)}
           <div class="bg-base-200 rounded-xl p-4">
             <div class="flex items-start justify-between mb-3">
               <div>
@@ -158,7 +159,7 @@
             {#if rule.cards.length > 0}
               <div class="space-y-2">
                 <p class="text-xs font-semibold text-base-content/70 uppercase">Cards</p>
-                {#each rule.cards as cardInfo}
+                {#each rule.cards as cardInfo (cardInfo.card.id)}
                   <div class="flex items-center justify-between bg-base-300 rounded p-2">
                     <div>
                       <p class="text-sm font-mono">{cardInfo.card.code || cardInfo.card.id}</p>
@@ -173,7 +174,7 @@
             {#if rule.incentives.length > 0}
               <div class="space-y-2 mt-3">
                 <p class="text-xs font-semibold text-base-content/70 uppercase">Incentives</p>
-                {#each rule.incentives as incentive}
+                {#each rule.incentives as incentive (incentive.id)}
                   <div class="flex items-center gap-2 bg-base-300 rounded p-2">
                     <div class="badge badge-sm badge-success">{incentive.type}</div>
                     <p class="text-sm">{incentive.name || incentive.id}</p>
@@ -187,7 +188,7 @@
     {:else}
       <!-- Group by Card View -->
       <div class="space-y-4">
-        {#each byCard() as cardData}
+        {#each byCard() as cardData (cardData.card.id)}
           <div class="bg-base-200 rounded-xl p-4">
             <div class="flex items-start justify-between mb-3">
               <div>
@@ -200,7 +201,7 @@
             {#if cardData.earningRules.length > 0}
               <div class="space-y-2">
                 <p class="text-xs font-semibold text-base-content/70 uppercase">Earning Rules</p>
-                {#each cardData.earningRules as erInfo}
+                {#each cardData.earningRules as erInfo (erInfo.id)}
                   <div class="flex items-center justify-between bg-base-300 rounded p-2">
                     <p class="text-sm">{erInfo.name}</p>
                     <span class="font-semibold">{formatNum(erInfo.points)} pts</span>
@@ -218,7 +219,7 @@
       <div class="bg-base-200 rounded-xl p-4">
         <h4 class="font-bold mb-3">Incentives Summary</h4>
         <div class="space-y-2">
-          {#each incentivesSummary() as item}
+          {#each incentivesSummary() as item (item.incentive.id)}
             <div class="bg-base-300 rounded p-3">
               <div class="flex items-center gap-2 mb-2">
                 <div class="badge badge-sm badge-success">{item.incentive.type}</div>

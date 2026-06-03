@@ -23,7 +23,7 @@
 </script>
 
 <g class="multi-line">
-  {#each series as s}
+  {#each series as s (s.key)}
     {@const path = buildPath(s.key)}
     {#if path}
       <path
@@ -34,7 +34,7 @@
         stroke-linecap="round"
         stroke-linejoin="round"
       />
-      {#each $data.filter(d => d[s.key] != null) as d}
+      {#each $data.filter(d => d[s.key] != null) as d (d[xKey])}
         <circle
           cx={cx(d)}
           cy={$yScale(d[s.key])}

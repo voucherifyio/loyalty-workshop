@@ -17,16 +17,12 @@
   } = $props();
 
   const displayedActivities = $derived(isMemberMode ? memberActivities : cardActivities);
-
-  const JSON_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" /></svg>`;
 </script>
 
 <div>
   <div class="flex items-center gap-2 mb-4">
     <SectionHeading>
-      {#snippet children()}
-        {isMemberMode ? 'Member Activities' : 'Card Activities'}
-      {/snippet}
+      {isMemberMode ? 'Member Activities' : 'Card Activities'}
     </SectionHeading>
     {#if displayedActivities.length > 0}
       <CountBadge count={displayedActivities.length} />
@@ -44,7 +40,7 @@
           <tr><th>Date/Time</th><th>Type</th><th>ID</th><th></th></tr>
         </thead>
         <tbody>
-          {#each displayedActivities as activity}
+          {#each displayedActivities as activity (activity.id)}
             <tr>
               <td class="text-[10px] whitespace-nowrap">{formatDateTime(activity.created_at)}</td>
               <td>
@@ -55,7 +51,9 @@
               <td class="font-mono text-[9px] text-base-content/50">{activity.id}</td>
               <td>
                 <button class="btn btn-circle btn-xs btn-ghost" onclick={() => onToggleRow(activity.id)} title="Toggle JSON">
-                  {@html JSON_ICON}
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                  </svg>
                 </button>
               </td>
             </tr>

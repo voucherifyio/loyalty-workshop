@@ -248,7 +248,7 @@
       </div>
     {:else if expandedTiers.length > 0}
       <div class="flex rounded-lg overflow-hidden h-9 w-full gap-px">
-        {#each sortedTiers as tier, i}
+        {#each sortedTiers as tier, i (tier.id)}
           {@const segMin = tier.qualification_rules?.points.min_value ?? 0}
           {@const segMax = tier.qualification_rules?.points.max_value ?? visualMax}
           {@const widthPct = Math.max(((segMax - segMin) / visualMax) * 100, 8)}

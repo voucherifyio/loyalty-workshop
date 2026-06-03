@@ -39,7 +39,7 @@
   <div>
     <div class="mb-3">
       <SectionHeading>
-        {#snippet children()}Tier Progress{/snippet}
+        Tier Progress
       </SectionHeading>
     </div>
     <div class="bg-base-200 rounded-xl p-3">
@@ -58,7 +58,7 @@
             </div>
           {:else}
             <div class="space-y-1.5">
-              {#each risks.slice(0, 3) as risk}
+              {#each risks.slice(0, 3) as risk, index (index)}
                 {#if risk.type === 'TIER_DOWNGRADE'}
                   <div class="bg-error/10 border border-error/30 rounded p-2">
                     <div class="flex items-start gap-2">
@@ -149,7 +149,7 @@
             </div>
           {:else}
             <div class="space-y-1.5">
-              {#each opportunities.slice(0, 3) as opp}
+              {#each opportunities.slice(0, 3) as opp, index (index)}
                 <div class="bg-base-300/30 rounded p-2">
                   <p class="text-xs font-semibold">{opp.tier_id}</p>
                   {#if opp.points === 0}

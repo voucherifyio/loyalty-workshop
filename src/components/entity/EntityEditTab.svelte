@@ -369,7 +369,7 @@
     <!-- Simple 2-column grid like Details tab -->
     <div class="flex-1 overflow-auto">
       <div class="grid grid-cols-[120px_1fr] gap-x-4 gap-y-3 text-xs">
-        {#each allFields as [fieldName, fieldConfig]}
+        {#each allFields as [fieldName, fieldConfig] (fieldName)}
           {@const editable = isFieldEditable(fieldConfig)}
           {@const tooltip = getDisabledTooltip(fieldConfig)}
           {@const hasError = fieldErrors[fieldName]}

@@ -85,49 +85,43 @@
 </script>
 
 <BaseModal {open} size="md" onClose={handleClose}>
-  {#snippet children()}
-    <ModalHeader
-      title="Create Order"
-      {subtitle}
-      onClose={handleClose}
-      disabled={submitting}
+  <ModalHeader
+    title="Create Order"
+    {subtitle}
+    onClose={handleClose}
+    disabled={submitting}
+  />
+
+  <div class="space-y-4">
+    <OrderInputForm
+      bind:mode={orderMode}
+      {customerId}
+      hideModeSelector={true}
+      bind:orderRefType
+      bind:orderRefValue
+      bind:orderAmount
+      bind:createMode
+      bind:orderItems
     />
 
-    <div class="space-y-4">
-      <OrderInputForm
-        bind:mode={orderMode}
-        {customerId}
-        hideModeSelector={true}
-        bind:orderRefType
-        bind:orderRefValue
-        bind:orderAmount
-        bind:createMode
-        bind:orderItems
-      />
+    <AlertBanner variant="info" title="Earning Rules Trigger">
+      <div class="text-sm">
+        Creates a <code class="bg-base-300 px-1 py-0.5 rounded text-xs">PAID</code> order with <code class="bg-base-300 px-1 py-0.5 rounded text-xs">customer.order.paid</code> event to activate configured earning rules
+      </div>
+    </AlertBanner>
 
-      <AlertBanner variant="info" title="Earning Rules Trigger">
-        {#snippet children()}
-          <div class="text-sm">
-            Creates a <code class="bg-base-300 px-1 py-0.5 rounded text-xs">PAID</code> order with <code class="bg-base-300 px-1 py-0.5 rounded text-xs">customer.order.paid</code> event to activate configured earning rules
-          </div>
-        {/snippet}
+    {#if error}
+      <AlertBanner variant="error" title="Error">
+        <pre class="text-xs mt-1">{error}</pre>
       </AlertBanner>
+    {/if}
+  </div>
 
-      {#if error}
-        <AlertBanner variant="error" title="Error">
-          {#snippet children()}
-            <pre class="text-xs mt-1">{error}</pre>
-          {/snippet}
-        </AlertBanner>
-      {/if}
-    </div>
-
-    <ModalFooter
-      confirmLabel="Create Order"
-      loading={submitting}
-      confirmDisabled={!isValid()}
-      onCancel={handleClose}
-      onConfirm={handleSubmit}
-    />
-  {/snippet}
+  <ModalFooter
+    confirmLabel="Create Order"
+    loading={submitting}
+    confirmDisabled={!isValid()}
+    onCancel={handleClose}
+    onConfirm={handleSubmit}
+  />
 </BaseModal>
