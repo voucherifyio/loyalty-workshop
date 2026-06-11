@@ -18,13 +18,17 @@
   let { programId } = $props();
 
   // Controls
-  let rangeDays = $state(30);
+  let rangeDays = $state(7);
   let resolution = $state('day');
-  let selectedCardDefinitionId = $state(null);
+  let selectedCardDefinition = $state('all'); // 'all' or specific card_definition_id
+  let showPerCardBreakdown = $state(false);
 
   // Data
   let dailyData = $state([]);
-  let summaryData = $state([]);
+  let allSummaryData = $state([]); // All summary data (unfiltered, used for breakdown comparison and client-side filtering)
+  let allCardDefinitions = $state([]); // Keep all card defs for filter dropdown
+  let hasLoadedCardDefinitions = $state(false); // Track if we've attempted to load card defs
+  let lastProgramId = $state(null); // Track program ID changes
   let loading = $state(false);
   let fetchError = $state(null);
 
@@ -36,6 +40,18 @@
   const chartData = $derived(
     fillChartGapsWith(dailyData, startDateStr, endDateStr, resolution, ZERO_RECORD)
   );
+
+  // Derived list of unique card definitions (from all cards, not filtered)
+  const cardDefinitions = $derived(allCardDefinitions);
+
+  // Client-side filtered summary data based on selected card definition
+  // This allows instant switching between cards without additional API calls
+  const summaryData = $derived.by(() => {
+    if (selectedCardDefinition === 'all') {
+      return allSummaryData;
+    }
+    return allSummaryData.filter(s => s.card_definition_id === selectedCardDefinition);
+  });
 
   // Derived KPIs from daily data
   const dailyKpis = $derived.by(() => {
@@ -81,17 +97,9 @@
     ];
   });
 
-  // Derived card definition options for filter
-  const cardDefOptions = $derived(
-    summaryData.map(s => ({
-      id: s.card_definition_id,
-      label: s.card_definition_id,
-    }))
-  );
-
-  // Derived comparison rows (for BarComparison)
+  // Derived comparison rows (for BarComparison - always unfiltered to show all cards)
   const transactionRows = $derived(
-    summaryData.map(s => ({
+    allSummaryData.map(s => ({
       id: s.card_definition_id,
       label: s.card_definition_id,
       success_on_reward: s.success_on_reward,
@@ -100,7 +108,7 @@
   );
 
   const pointsRows = $derived(
-    summaryData.map(s => ({
+    allSummaryData.map(s => ({
       id: s.card_definition_id,
       label: s.card_definition_id,
       points_on_rewards: s.points_on_rewards,
@@ -109,7 +117,7 @@
   );
 
   const amountRows = $derived(
-    summaryData.map(s => ({
+    allSummaryData.map(s => ({
       id: s.card_definition_id,
       label: s.card_definition_id,
       amount_on_order: s.amount_on_order || 0,
@@ -118,36 +126,58 @@
 
   $effect(() => {
     if (!programId) return;
+    
+    // Reset card definitions when program changes
+    if (programId !== lastProgramId) {
+      hasLoadedCardDefinitions = false;
+      allCardDefinitions = [];
+      allSummaryData = [];
+      selectedCardDefinition = 'all';
+      lastProgramId = programId;
+    }
+    
     const s = startDateStr;
     const e = endDateStr;
     const res = resolution;
-    const cardDefId = selectedCardDefinitionId;
+    const cardDefId = selectedCardDefinition === 'all' ? null : selectedCardDefinition;
     fetchReports(s, e, res, cardDefId);
   });
 
-  async function fetchReports(start_date, end_date, res, card_definition_id) {
+  async function fetchReports(start_date, end_date, res, card_definition_id = null) {
     loading = true;
     fetchError = null;
     try {
-      const params = { start_date, end_date, resolution: res };
+      const dailyParams = {
+        start_date,
+        end_date,
+        resolution: res
+      };
+      
+      // Only filter daily data by card definition
       if (card_definition_id) {
-        params.card_definition_id = card_definition_id;
+        dailyParams.card_definition_id = card_definition_id;
       }
 
-      const [daily, summary] = await Promise.all([
-        reportsService.fetchProgramSpendingDaily(programId, params),
-        reportsService.fetchProgramSpendingSummary(
-          programId,
-          card_definition_id ? { card_definition_id } : {}
-        ),
-      ]);
+      // Fetch all card definitions once (unfiltered) if not already attempted
+      if (!hasLoadedCardDefinitions) {
+        try {
+          const allSummary = await reportsService.fetchProgramSpendingSummary(programId, {});
+          const unique = [...new Set(allSummary.map(s => s.card_definition_id))].filter(Boolean);
+          allCardDefinitions = unique.sort();
+          allSummaryData = allSummary; // Keep all summary data for client-side filtering
+        } catch (err) {
+          // Even if it fails, mark as loaded to prevent infinite retries
+          console.error('Failed to load card definitions:', err);
+        } finally {
+          hasLoadedCardDefinitions = true; // Mark as loaded even if empty or failed
+        }
+      }
 
-      dailyData = daily;
-      summaryData = summary;
+      // Only fetch daily data (summary is filtered client-side)
+      dailyData = await reportsService.fetchProgramSpendingDaily(programId, dailyParams);
     } catch (err) {
       fetchError = err.message || 'Failed to load spending reports';
       dailyData = [];
-      summaryData = [];
     } finally {
       loading = false;
     }
@@ -160,22 +190,18 @@
       Spending Reports
     </p>
 
-    <div class="flex items-center gap-2 flex-wrap">
-      <!-- Card Definition Filter -->
-      {#if cardDefOptions.length > 0}
-        <select
-          class="select select-xs select-bordered"
-          bind:value={selectedCardDefinitionId}
-        >
-          <option value={null}>All Cards</option>
-          {#each cardDefOptions as opt (opt.id)}
-            <option value={opt.id}>{opt.label}</option>
-          {/each}
-        </select>
-      {/if}
-
-      <ReportControls bind:rangeDays bind:resolution />
-    </div>
+    <!-- Card Definition Filter at top level -->
+    {#if !loading && cardDefinitions.length > 0}
+      <select
+        class="select select-xs select-bordered"
+        bind:value={selectedCardDefinition}
+      >
+        <option value="all">All Cards</option>
+        {#each cardDefinitions as cardDefId (cardDefId)}
+          <option value={cardDefId}>{cardDefId}</option>
+        {/each}
+      </select>
+    {/if}
   </div>
 
   {#if loading}
@@ -184,73 +210,117 @@
     </div>
   {:else if fetchError}
     <div class="alert alert-error text-xs">{fetchError}</div>
-  {:else if !chartData.length && !summaryData.length}
+  {:else if !allSummaryData.length && !summaryData.length}
     <p class="text-sm text-base-content/40 py-4 text-center">
       No spending data available for this program.
     </p>
   {:else}
-    <!-- Daily Range KPIs -->
+    <!-- All-Time Summary -->
     <div>
-      <p class="text-[10px] font-semibold text-base-content/40 uppercase tracking-widest mb-2">
-        Period Summary ({rangeDays} days)
-      </p>
-      <KpiTiles tiles={dailyKpis} />
-    </div>
-
-    <!-- Transaction Chart -->
-    <StackedBarReportCard
-      title="Daily Spending Transactions"
-      chartData={chartData}
-      series={TRANSACTION_SERIES}
-      resolution={resolution}
-    />
-
-    <!-- Points Chart -->
-    <StackedBarReportCard
-      title="Daily Points Spent"
-      chartData={chartData}
-      series={POINTS_SERIES}
-      resolution={resolution}
-    />
-
-    <!-- Amount Chart -->
-    <StackedBarReportCard
-      title="Daily Amount on Orders"
-      chartData={chartData}
-      series={AMOUNT_SERIES}
-      resolution={resolution}
-    />
-
-    <!-- Summary Section -->
-    {#if summaryData.length > 0}
-      <div class="border-t border-base-300 pt-4 mt-2">
-        <p class="text-[10px] font-semibold text-base-content/40 uppercase tracking-widest mb-2">
+      <div class="flex items-center gap-2 mb-2">
+        <p class="text-[10px] font-semibold text-base-content/40 uppercase tracking-widest">
           All-Time Summary
         </p>
+        {#if selectedCardDefinition !== 'all'}
+          <span class="badge badge-xs badge-primary font-mono">
+            {selectedCardDefinition}
+          </span>
+        {/if}
+      </div>
+      {#if summaryData.length > 0}
         <KpiTiles tiles={summaryKpis} />
+      {:else}
+        <p class="text-sm text-base-content/40 py-4 text-center bg-base-200 rounded-lg">
+          No data for selected card definition.
+        </p>
+      {/if}
+    </div>
 
-        {#if summaryData.length > 1}
-          <div class="mt-4">
-            <p class="text-[10px] font-semibold text-base-content/40 uppercase tracking-widest mb-2">
-              By Card Definition
-            </p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <p class="text-[9px] text-base-content/50 mb-2">Transactions</p>
-                <BarComparison rows={transactionRows} series={TRANSACTION_SERIES} />
-              </div>
-              <div>
-                <p class="text-[9px] text-base-content/50 mb-2">Points</p>
-                <BarComparison rows={pointsRows} series={POINTS_SERIES} />
-              </div>
-              <div>
-                <p class="text-[9px] text-base-content/50 mb-2">Amount on Orders</p>
-                <BarComparison rows={amountRows} series={AMOUNT_SERIES} />
-              </div>
+    <!-- Per-Card Breakdown Toggle -->
+    {#if allSummaryData.length > 1}
+      <div>
+        <button 
+          class="btn btn-sm btn-ghost gap-2"
+          onclick={() => showPerCardBreakdown = !showPerCardBreakdown}
+        >
+          <svg 
+            class="w-4 h-4 transition-transform {showPerCardBreakdown ? 'rotate-180' : ''}"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+          {showPerCardBreakdown ? 'Hide' : 'Show'} Breakdown by Card Definition
+        </button>
+        
+        {#if showPerCardBreakdown}
+          <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p class="text-[9px] text-base-content/50 mb-2">Transactions</p>
+              <BarComparison rows={transactionRows} series={TRANSACTION_SERIES} />
+            </div>
+            <div>
+              <p class="text-[9px] text-base-content/50 mb-2">Points</p>
+              <BarComparison rows={pointsRows} series={POINTS_SERIES} />
+            </div>
+            <div>
+              <p class="text-[9px] text-base-content/50 mb-2">Amount on Orders</p>
+              <BarComparison rows={amountRows} series={AMOUNT_SERIES} />
             </div>
           </div>
         {/if}
       </div>
+    {/if}
+
+    <!-- Daily Charts Section Header with Controls -->
+    <div class="pt-4 border-t border-base-300">
+      <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+        <div class="flex items-center gap-2">
+          <p class="text-[10px] font-semibold text-base-content/40 uppercase tracking-widest">
+            Daily Reports
+          </p>
+          {#if selectedCardDefinition !== 'all'}
+            <span class="badge badge-xs badge-primary font-mono">
+              {selectedCardDefinition}
+            </span>
+          {/if}
+        </div>
+        
+        <!-- Date Range and Resolution Controls -->
+        <ReportControls bind:rangeDays bind:resolution />
+      </div>
+
+      <!-- Daily Period KPIs -->
+      {#if dailyData.length > 0 || chartData.length > 0}
+        <KpiTiles tiles={dailyKpis} />
+      {:else}
+        <p class="text-sm text-base-content/40 py-4 text-center bg-base-200 rounded-lg">
+          No daily data for selected filters.
+        </p>
+      {/if}
+    </div>
+
+    <!-- Daily Charts -->
+    {#if dailyData.length > 0 || chartData.length > 0}
+      <StackedBarReportCard
+        title="Daily Spending Transactions"
+        chartData={chartData}
+        series={TRANSACTION_SERIES}
+        resolution={resolution}
+      />
+
+      <StackedBarReportCard
+        title="Daily Points Spent"
+        chartData={chartData}
+        series={POINTS_SERIES}
+        resolution={resolution}
+      />
+
+      <StackedBarReportCard
+        title="Daily Amount on Orders"
+        chartData={chartData}
+        series={AMOUNT_SERIES}
+        resolution={resolution}
+      />
     {/if}
   {/if}
 </div>

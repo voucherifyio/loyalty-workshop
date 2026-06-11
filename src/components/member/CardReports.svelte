@@ -8,9 +8,8 @@
   import AxisX from '../charts/AxisX.svelte';
   import AxisY from '../charts/AxisY.svelte';
   import HoverLayer from '../charts/HoverLayer.svelte';
+  import ReportControls from '../reports/ReportControls.svelte';
   import {
-    RANGE_OPTIONS,
-    RESOLUTION_OPTIONS,
     POS_KEYS,
     NEG_KEYS,
     FLOW_COLORS,
@@ -34,7 +33,7 @@
   let { programId, memberId, cardId } = $props();
 
   // ─── Controls ─────────────────────────────────────────────────────────────
-  let rangeDays = $state(30);
+  let rangeDays = $state(7);
   let resolution = $state('day');
 
   // ─── Tooltip state ────────────────────────────────────────────────────────
@@ -104,29 +103,7 @@
   <div class="flex items-center justify-between flex-wrap gap-2">
     <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">Point Reports</p>
 
-    <div class="flex items-center gap-2 flex-wrap">
-      <!-- Range presets -->
-      <div class="join">
-        {#each RANGE_OPTIONS as opt (opt.days)}
-          <button
-            class="join-item btn btn-xs {rangeDays === opt.days ? 'btn-primary' : 'btn-ghost'}"
-            onclick={() => { rangeDays = opt.days; }}
-          >
-            {opt.label}
-          </button>
-        {/each}
-      </div>
-
-      <!-- Resolution selector -->
-      <select
-        class="select select-xs select-bordered"
-        bind:value={resolution}
-      >
-        {#each RESOLUTION_OPTIONS as opt (opt.value)}
-          <option value={opt.value}>{opt.label}</option>
-        {/each}
-      </select>
-    </div>
+    <ReportControls bind:rangeDays bind:resolution />
   </div>
 
   {#if loading}
