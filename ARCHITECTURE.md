@@ -205,7 +205,7 @@ graph TD
     PointsSection --> EarningRules[Earning Rules]
     PointsSection --> EarningRulesEarningsEditor[Earnings Editor]
     EarningRulesEarningsEditor --> EarningEffectEditor[Effect Editor]
-    PointsSection --> Incentives[Incentives]
+    PointsSection --> Benefits[Benefits]
     PointsSection --> Rewards[Rewards]
     
     MembersDrawer --> MemberDetailPage[Member Detail Page]
@@ -505,8 +505,8 @@ graph TD
 import { api } from '../api/client.js';
 import { endpoints } from '../api/endpoints.js';
 
-export async function fetchMember(memberId) {
-  const response = await api.get(endpoints.members.get(memberId));
+export async function fetchMember(programId, memberId) {
+  const response = await api.get(endpoints.memberships.get(programId, memberId));
   return response.data || response;
 }
 

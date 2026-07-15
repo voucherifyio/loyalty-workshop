@@ -1,5 +1,5 @@
-import { earningRuleHasQualificationRules } from '../utils/earningRuleSummary.js';
 import { icons } from '../icons/index.js';
+import { earningRuleHasQualificationRules } from '../utils/earningRuleSummary.js';
 
 // Entity type configuration - grouped by semantic sections
 const _structureEntities = [
@@ -8,7 +8,7 @@ const _structureEntities = [
 
 const earningsEntities = [
   { key: "earningRules", name: "Earning Rules" },
-  { key: "incentives", name: "Incentives" },
+  { key: "benefits", name: "Benefits" },
 ];
 
 const rewardsEntities = [
@@ -27,7 +27,7 @@ export const entityTypes = [
 export const entityIcons = {
   cardDefinitions: { name: "Card Definitions", icon: icons.cardDefinitions },
   earningRules:    { name: "Earning Rules",    icon: icons.earningRules },
-  incentives:      { name: "Incentives",       icon: icons.incentives },
+  benefits:      { name: "Benefits",       icon: icons.benefits },
   rewards:         { name: "Rewards",          icon: icons.rewards },
   tierStructures:  { name: "Tier Structures",  icon: icons.tierStructures },
 };
@@ -64,8 +64,8 @@ export const samplePayloads = {
       },
     ],
   },
-  incentives: {
-    name: "Bonus Points Incentive",
+  benefits: {
+    name: "Bonus Points Benefit",
     type: "POINTS",
     stock: 0,
     points: {
@@ -101,7 +101,7 @@ export const entityLabels = {
   programs: "Program",
   cardDefinitions: "Card Definition",
   earningRules: "Earning Rule",
-  incentives: "Incentive",
+  benefits: "Benefit",
   rewards: "Reward",
   tierStructures: "Tier Structure",
   tiers: "Tier",
@@ -242,7 +242,7 @@ export const featureChecks = {
       key: 'expiration',
       label: 'Tier Expiration',
       icon: icons.clock,
-      check: (item) => item.expiration?.type != null && item.expiration.type !== 'NO_EXPIRATION',
+      check: (item) => item.expiration?.type != null && item.expiration.type !== 'NO_RETENTION',
     },
     {
       key: 'downgrade',

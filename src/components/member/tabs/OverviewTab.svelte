@@ -13,7 +13,7 @@
 
   let {
     isMemberMode = false,
-    member = null,
+    membership = null,
     selectedCard,
     selectedMemberCard,
     pendingBuckets = [],
@@ -66,11 +66,11 @@
         <div class="mb-3">
           <SectionHeading>
             Cards
-            <CountBadge count={member.cards.length} className="ml-1 normal-case" />
+            <CountBadge count={membership.cards.length} className="ml-1 normal-case" />
           </SectionHeading>
         </div>
         <div class="space-y-2">
-          {#each member.cards as mc (mc.card.id)}
+          {#each membership.cards as mc (mc.card.id)}
             {@const card = mc.card}
             {@const tp = mc.tier_progress?.current}
             {@const tpPct = tp
@@ -100,17 +100,19 @@
                   {/if}
                 </div>
               </div>
-              {#if tp}
+              {#if tp?.id}
                 <div class="mt-3 pt-3 border-t border-base-300">
                   <div class="flex items-center justify-between mb-1">
                     <span class="text-[10px] font-semibold text-base-content/60"
                       >{tp.name}</span
                     >
-                    <span class="text-[10px] text-base-content/40"
-                      >{formatNum(tp.points.current)} / {formatNum(
-                        tp.points.max,
-                      )} pts</span
-                    >
+                    <span class="text-[10px] text-base-content/40">
+                      {#if tp.points.max != null}
+                        {formatNum(tp.points.current)} / {formatNum(tp.points.max)} pts
+                      {:else}
+                        {formatNum(tp.points.current)} pts &middot; no limit
+                      {/if}
+                    </span>
                   </div>
                   <div class="h-2 rounded-full bg-base-300 overflow-hidden">
                     <div

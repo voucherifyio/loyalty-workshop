@@ -10,7 +10,7 @@ const ENDPOINT_MAP = {
   programs: endpoints.programs,
   cardDefinitions: endpoints.cardDefinitions,
   earningRules: endpoints.earningRules,
-  incentives: endpoints.incentives,
+  benefits: endpoints.benefits,
   rewards: endpoints.rewards,
   tierStructures: endpoints.tierStructures,
 };

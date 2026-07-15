@@ -29,7 +29,11 @@ export const endpoints = {
 
     // Program reports
     spendingDaily: (id, query = {}) => withQuery(`/v2/loyalties/programs/${id}/reports/spending/daily`, query),
-    spendingSummary: (id, query = {}) => withQuery(`/v2/loyalties/programs/${id}/reports/spending/summary`, query)
+    spendingSummary: (id, query = {}) => withQuery(`/v2/loyalties/programs/${id}/reports/spending/summary`, query),
+    pointsEarningsDaily: (id, query = {}) => withQuery(`/v2/loyalties/programs/${id}/reports/points-earnings/daily`, query),
+    pointsEarningsSummary: (id, query = {}) => withQuery(`/v2/loyalties/programs/${id}/reports/points-earnings/summary`, query),
+    earningRulesDaily: (id, query = {}) => withQuery(`/v2/loyalties/programs/${id}/reports/earning-rules/daily`, query),
+    earningRulesSummary: (id, query = {}) => withQuery(`/v2/loyalties/programs/${id}/reports/earning-rules/summary`, query)
   },
 
   // Card Definitions
@@ -71,16 +75,16 @@ export const endpoints = {
     activities: (id) => `/v2/loyalties/rewards/${id}/activities`
   },
 
-  // Incentives
-  incentives: {
-    list: (query = {}) => withQuery('/v2/loyalties/incentives', query),
-    get: (id) => `/v2/loyalties/incentives/${id}`,
-    create: () => '/v2/loyalties/incentives',
-    update: (id) => `/v2/loyalties/incentives/${id}`,
-    delete: (id) => `/v2/loyalties/incentives/${id}`,
-    activate: (id) => `/v2/loyalties/incentives/${id}/activate`,
-    draft: (id) => `/v2/loyalties/incentives/${id}/draft`,
-    activities: (id) => `/v2/loyalties/incentives/${id}/activities`
+  // Benefits
+  benefits: {
+    list: (query = {}) => withQuery('/v2/loyalties/benefits', query),
+    get: (id) => `/v2/loyalties/benefits/${id}`,
+    create: () => '/v2/loyalties/benefits',
+    update: (id) => `/v2/loyalties/benefits/${id}`,
+    delete: (id) => `/v2/loyalties/benefits/${id}`,
+    activate: (id) => `/v2/loyalties/benefits/${id}/activate`,
+    draft: (id) => `/v2/loyalties/benefits/${id}/draft`,
+    activities: (id) => `/v2/loyalties/benefits/${id}/activities`
   },
 
   // Tier Structures
@@ -107,7 +111,6 @@ export const endpoints = {
   // Members
   members: {
     list: (programId, query = {}) => withQuery(`/v2/loyalties/programs/${programId}/members`, query),
-    get: (programId, memberId) => `/v2/loyalties/programs/${programId}/members/${memberId}`,
     create: (programId) => `/v2/loyalties/programs/${programId}/members`,
     activate: (programId, memberId) => `/v2/loyalties/programs/${programId}/members/${memberId}/activate`,
     deactivate: (programId, memberId) => `/v2/loyalties/programs/${programId}/members/${memberId}/deactivate`,
@@ -138,9 +141,9 @@ export const endpoints = {
       withQuery(`/v2/loyalties/programs/${programId}/members/${memberId}/orders/payments`, query),
     createOrderPayment: (programId, memberId) => `/v2/loyalties/programs/${programId}/members/${memberId}/orders/payments`,
 
-    // Incentive transactions
-    incentiveTransactions: (programId, memberId, query = {}) =>
-      withQuery(`/v2/loyalties/programs/${programId}/members/${memberId}/incentives/transactions`, query),
+    // Benefit transactions
+    benefitTransactions: (programId, memberId, query = {}) =>
+      withQuery(`/v2/loyalties/programs/${programId}/members/${memberId}/benefits/transactions`, query),
 
     // Tier transactions
     tierTransactions: (programId, memberId, query = {}) =>
@@ -149,6 +152,17 @@ export const endpoints = {
     // Daily card reports
     dailyReports: (programId, memberId, cardId, query = {}) =>
       withQuery(`/v2/loyalties/programs/${programId}/members/${memberId}/cards/${cardId}/reports/daily`, query)
+  },
+
+  // Memberships
+  memberships: {
+    // All memberships for a customer across programs, in one call.
+    // `customerId` is a generic identifier value; its meaning is controlled by
+    // `query.identification_type` (customer_id | customer_source_id | member_id).
+    list: (customerId, query = {}) => withQuery(`/v2/loyalties/memberships/${customerId}`, query),
+    // Single membership scoped to one program. Same identifier convention as `list`.
+    get: (programId, customerId, query = {}) =>
+      withQuery(`/v2/loyalties/programs/${programId}/memberships/${customerId}`, query)
   },
 
   // Orders (v1 API)

@@ -1,7 +1,7 @@
 /**
  * Relationships store — entity usage counts and cross-entity links.
  *
- * Holds computed maps (entityUsage, earningRuleIncentives, etc.) and
+ * Holds computed maps (entityUsage, earningRuleBenefits, etc.) and
  * exposes helper functions. Consumers call refreshAll() after data loads.
  */
 import { api } from '../../api/client.js';
@@ -12,15 +12,15 @@ class RelationshipsStore {
   entityUsage = $state({
     cardDefinitions: {},
     earningRules: {},
-    incentives: {},
+    benefits: {},
     rewards: {},
     tierStructures: {},
   });
 
-  earningRuleIncentives = $state({});
+  earningRuleBenefits = $state({});
   earningRuleCards = $state({}); // earningRuleId → cardDefinitionId[]
   tierStructureCards = $state({}); // tierStructureId → cardDefinitionId
-  incentiveCards = $state({}); // incentiveId → cardDefinitionId (direct, from incentive.points.card_definition_id)
+  benefitCards = $state({}); // benefitId → cardDefinitionId (direct, from benefit.points.card_definition_id)
   cardDefinitionUsage = $state({
     earningRules: {},    // cardDefId → count of earning rules using it
     tierStructures: {},  // cardDefId → count of tier structures using it
@@ -30,11 +30,11 @@ class RelationshipsStore {
   async refreshAll(programs, entities) {
     this.entityUsage = this.calculateEntityUsage(programs);
 
-    const { incentiveMap, incentiveUsage } = await this.fetchIncentivesForEarningRules(
+    const { benefitMap, benefitUsage } = await this.fetchBenefitsForEarningRules(
       entities.earningRules
     );
-    this.earningRuleIncentives = incentiveMap;
-    this.entityUsage.incentives = incentiveUsage;
+    this.earningRuleBenefits = benefitMap;
+    this.entityUsage.benefits = benefitUsage;
 
     const { erCards, tsCards, cardUsage } = this.extractCardDefinitionRelationships(
       entities.earningRules,
@@ -44,7 +44,7 @@ class RelationshipsStore {
     this.tierStructureCards = tsCards;
     this.cardDefinitionUsage = cardUsage;
 
-    this.incentiveCards = this.buildIncentiveCardsMap(entities.incentives);
+    this.benefitCards = this.buildBenefitCardsMap(entities.benefits);
   }
 
   /** Recompute entity usage from program assignment data. */
@@ -62,36 +62,36 @@ class RelationshipsStore {
     this.cardDefinitionUsage = cardUsage;
   }
 
-  /** Recompute incentive → card definition direct map from incentive list. */
-  refreshIncentiveCards(incentives) {
-    this.incentiveCards = this.buildIncentiveCardsMap(incentives);
+  /** Recompute benefit → card definition direct map from benefit list. */
+  refreshBenefitCards(benefits) {
+    this.benefitCards = this.buildBenefitCardsMap(benefits);
   }
 
-  /** Remove an earning rule from the incentive map and recalculate incentive usage. */
+  /** Remove an earning rule from the benefit map and recalculate benefit usage. */
   removeEarningRule(id) {
-    const { [id]: _removed, ...rest } = this.earningRuleIncentives;
-    this.earningRuleIncentives = rest;
+    const { [id]: _removed, ...rest } = this.earningRuleBenefits;
+    this.earningRuleBenefits = rest;
 
-    const allIncentives = Object.values(this.earningRuleIncentives).flat();
-    const incentiveUsage = {};
-    allIncentives.forEach((inc) => {
-      const incId = inc.incentive_id || inc.id;
-      incentiveUsage[incId] = (incentiveUsage[incId] || 0) + 1;
+    const allBenefits = Object.values(this.earningRuleBenefits).flat();
+    const benefitUsage = {};
+    allBenefits.forEach((benefit) => {
+      const benefitId = benefit.benefit_id || benefit.id;
+      benefitUsage[benefitId] = (benefitUsage[benefitId] || 0) + 1;
     });
-    this.entityUsage = { ...this.entityUsage, incentives: incentiveUsage };
+    this.entityUsage = { ...this.entityUsage, benefits: benefitUsage };
   }
 
   // ── Pure computation helpers ──────────────────────────────────────────────
 
-  /** Build incentiveId → cardDefinitionId map from incentive objects directly. */
-  buildIncentiveCardsMap(incentives) {
+  /** Build benefitId → cardDefinitionId map from benefit objects directly. */
+  buildBenefitCardsMap(benefits) {
     const map = {};
-    incentives.forEach((inc) => {
+    benefits.forEach((benefit) => {
       const cardDefId =
-        inc.points?.card_definition_id ??
-        inc.points_proportional?.card_definition_id ??
+        benefit.points?.card_definition_id ??
+        benefit.points_proportional?.card_definition_id ??
         null;
-      if (cardDefId) map[inc.id] = cardDefId;
+      if (cardDefId) map[benefit.id] = cardDefId;
     });
     return map;
   }
@@ -100,7 +100,7 @@ class RelationshipsStore {
     const usage = {
       cardDefinitions: {},
       earningRules: {},
-      incentives: {},
+      benefits: {},
       rewards: {},
       tierStructures: {},
     };
@@ -129,36 +129,36 @@ class RelationshipsStore {
     return usage;
   }
 
-  async fetchIncentivesForEarningRules(earningRules) {
-    const incentiveMap = {};
-    const incentiveUsage = {};
+  async fetchBenefitsForEarningRules(earningRules) {
+    const benefitMap = {};
+    const benefitUsage = {};
 
     earningRules.forEach((earningRule) => {
-      const incentivesInRule = [];
+      const benefitsInRule = [];
 
       if (earningRule.earnings && Array.isArray(earningRule.earnings)) {
         earningRule.earnings.forEach((earning) => {
           if (earning.effects && Array.isArray(earning.effects)) {
             earning.effects.forEach((effect) => {
-              if (effect.type === 'INCENTIVE' && effect.incentive?.id) {
-                incentivesInRule.push({
-                  incentive_id: effect.incentive.id,
-                  id: effect.incentive.id,
+              if (effect.type === 'BENEFIT' && effect.benefit?.id) {
+                benefitsInRule.push({
+                  benefit_id: effect.benefit.id,
+                  id: effect.benefit.id,
                 });
-                incentiveUsage[effect.incentive.id] =
-                  (incentiveUsage[effect.incentive.id] || 0) + 1;
+                benefitUsage[effect.benefit.id] =
+                  (benefitUsage[effect.benefit.id] || 0) + 1;
               }
             });
           }
         });
       }
 
-      if (incentivesInRule.length > 0) {
-        incentiveMap[earningRule.id] = incentivesInRule;
+      if (benefitsInRule.length > 0) {
+        benefitMap[earningRule.id] = benefitsInRule;
       }
     });
 
-    return { incentiveMap, incentiveUsage };
+    return { benefitMap, benefitUsage };
   }
 
   extractCardDefinitionRelationships(earningRules, tierStructures) {

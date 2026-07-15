@@ -4,12 +4,12 @@
     blockIndex,
     effectIndex,
     availableCardDefinitions = [],
-    availableIncentives = [],
+    availableBenefits = [],
     onUpdateType = () => {},
     onUpdatePointsValue = () => {},
     onUpdatePointsCardDef = () => {},
     onUpdatePointsExpiration = () => {},
-    onUpdateIncentiveId = () => {},
+    onUpdateBenefitId = () => {},
     onUpdatePointsProportional = () => {},
     onRemove = () => {}
   } = $props();
@@ -17,7 +17,7 @@
   function getEffectTypeLabel(type) {
     const labels = {
       POINTS: "Points",
-      INCENTIVE: "Incentive",
+      BENEFIT: "Benefit",
       POINTS_PROPORTIONAL: "Points Proportional",
     };
     return labels[type] || type;
@@ -38,7 +38,7 @@
         onchange={(e) => onUpdateType(e.target.value)}
       >
         <option value="POINTS">Points</option>
-        <option value="INCENTIVE">Incentive</option>
+        <option value="BENEFIT">Benefit</option>
         <option value="POINTS_PROPORTIONAL">Points Proportional</option>
       </select>
     </div>
@@ -111,21 +111,21 @@
         ></textarea>
       </div>
     </div>
-  {:else if effect.type === "INCENTIVE"}
+  {:else if effect.type === "BENEFIT"}
     <div class="space-y-2 pl-2 border-l-2 border-secondary/20">
       <div class="form-control">
-        <label class="label py-0.5" for="incentive-id-{blockIndex}-{effectIndex}">
-          <span class="label-text text-xs">Incentive ID</span>
+        <label class="label py-0.5" for="benefit-id-{blockIndex}-{effectIndex}">
+          <span class="label-text text-xs">Benefit ID</span>
         </label>
         <select
-          id="incentive-id-{blockIndex}-{effectIndex}"
+          id="benefit-id-{blockIndex}-{effectIndex}"
           class="select select-sm select-bordered font-mono text-xs"
-          value={effect.incentive?.id || ""}
-          onchange={(e) => onUpdateIncentiveId(e.target.value)}
+          value={effect.benefit?.id || ""}
+          onchange={(e) => onUpdateBenefitId(e.target.value)}
         >
-          <option value="">-- Select Incentive --</option>
-          {#each availableIncentives as inc (inc.id)}
-            <option value={inc.id}>{inc.name || inc.id}</option>
+          <option value="">-- Select Benefit --</option>
+          {#each availableBenefits as benefit (benefit.id)}
+            <option value={benefit.id}>{benefit.name || benefit.id}</option>
           {/each}
         </select>
       </div>

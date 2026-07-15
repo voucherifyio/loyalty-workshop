@@ -20,7 +20,7 @@
     prefillData = {},
     // Relationship data for Linked tab
     programs = [],
-    earningRuleIncentives = {},
+    earningRuleBenefits = {},
     earningRuleCards = {},
     tierStructureCards = {},
     entities = {},
@@ -63,7 +63,7 @@
   const displayStatus = $derived(item?.status ?? null);
 
   function getAvailableStatusTransitions(type, currentStatus) {
-    if (type === 'incentives') {
+    if (type === 'benefits') {
       if (currentStatus === 'DRAFT') return [{ action: 'activate', toStatus: 'ACTIVE', label: 'Activate' }];
       if (currentStatus === 'ACTIVE') return [{ action: 'draft', toStatus: 'DRAFT', label: 'Move to Draft' }];
       return [];
@@ -126,9 +126,9 @@
         .map(p => ({ id: p.id, name: p.name, status: p.status }));
       if (assignedPrograms.length) groups.push({ type: "programs", label: "Programs", items: assignedPrograms });
 
-    } else if (entityType === "incentives") {
-      const usingEarningRuleIds = Object.entries(earningRuleIncentives)
-        .filter(([, incs]) => incs.some(inc => (inc.incentive_id || inc.id) === entityId))
+    } else if (entityType === "benefits") {
+      const usingEarningRuleIds = Object.entries(earningRuleBenefits)
+        .filter(([, benefits]) => benefits.some(benefit => (benefit.benefit_id || benefit.id) === entityId))
         .map(([ruleId]) => ruleId);
       const usingEarningRules = usingEarningRuleIds
         .map(id => (entities.earningRules || []).find(e => e.id === id))
@@ -164,12 +164,12 @@
     const groups = [];
 
     if (entityType === "earningRules") {
-      const incIds = (earningRuleIncentives[entityId] || []).map(inc => inc.incentive_id || inc.id);
-      const usedIncentives = incIds
-        .map(id => (entities.incentives || []).find(e => e.id === id))
+      const benefitIds = (earningRuleBenefits[entityId] || []).map(benefit => benefit.benefit_id || benefit.id);
+      const usedBenefits = benefitIds
+        .map(id => (entities.benefits || []).find(e => e.id === id))
         .filter(Boolean)
         .map(e => ({ id: e.id, name: e.name, status: e.status }));
-      if (usedIncentives.length) groups.push({ type: "incentives", label: "Incentives", items: usedIncentives });
+      if (usedBenefits.length) groups.push({ type: "benefits", label: "Benefits", items: usedBenefits });
 
       const cardIds = earningRuleCards[entityId] || [];
       const usedCards = cardIds
@@ -313,7 +313,7 @@
       {entityLabel}
       parentStatus={parentTierStructureStatus}
       cardDefinitions={entities.cardDefinitions || []}
-      incentives={entities.incentives || []}
+      benefits={entities.benefits || []}
       tierStructures={entities.tierStructures || []}
       onUpdated={onUpdated}
       onClose={handleClose}

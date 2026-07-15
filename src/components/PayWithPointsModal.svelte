@@ -11,7 +11,7 @@
   let {
     open = false,
     card = null,
-    member = null,
+    membership = null,
     programId = '',
     memberId = '',
     onClose = () => {},
@@ -336,7 +336,7 @@
 <!-- Order Selection Modal -->
 <OrderSelectionModal
   open={orderSelectionOpen}
-  customerId={member?.customer_id || ''}
+  customerId={membership?.member?.customer_id || ''}
   onClose={() => { orderSelectionOpen = false; }}
   onOrderSelected={handleOrderSelected}
 />

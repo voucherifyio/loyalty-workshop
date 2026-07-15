@@ -6,7 +6,7 @@
   let {
     initialEarnings = [],
     availableCardDefinitions = [],
-    availableIncentives = [],
+    availableBenefits = [],
     availableTierStructures = [],
     onSave = () => {},
     onCancel = () => {},
@@ -98,7 +98,7 @@
 
     // Clear all type-specific fields
     delete effect.points;
-    delete effect.incentive;
+    delete effect.benefit;
     delete effect.points_proportional;
 
     // Initialize appropriate field based on type
@@ -108,8 +108,8 @@
         card_definition_id: "",
         expiration: null,
       };
-    } else if (newType === "INCENTIVE") {
-      effect.incentive = { id: "" };
+    } else if (newType === "BENEFIT") {
+      effect.benefit = { id: "" };
     } else if (newType === "POINTS_PROPORTIONAL") {
       effect.points_proportional = null;
     }
@@ -139,8 +139,8 @@
     }
   }
 
-  function updateIncentiveId(blockIndex, effectIndex, value) {
-    earnings[blockIndex].effects[effectIndex].incentive.id = value;
+  function updateBenefitId(blockIndex, effectIndex, value) {
+    earnings[blockIndex].effects[effectIndex].benefit.id = value;
   }
 
   function updatePointsProportional(blockIndex, effectIndex, value) {
@@ -167,8 +167,8 @@
             return (
               effect.points?.value > 0 && effect.points?.card_definition_id
             );
-          } else if (effect.type === "INCENTIVE") {
-            return effect.incentive?.id;
+          } else if (effect.type === "BENEFIT") {
+            return effect.benefit?.id;
           } else if (effect.type === "POINTS_PROPORTIONAL") {
             return effect.points_proportional !== undefined;
           }
@@ -196,7 +196,7 @@
   function getEffectTypeLabel(type) {
     const labels = {
       POINTS: "Points",
-      INCENTIVE: "Incentive",
+      BENEFIT: "Benefit",
       POINTS_PROPORTIONAL: "Points Proportional",
     };
     return labels[type] || type;
@@ -437,12 +437,12 @@
                             {blockIndex}
                             {effectIndex}
                             {availableCardDefinitions}
-                            {availableIncentives}
+                            {availableBenefits}
                             onUpdateType={(type) => updateEffectType(blockIndex, effectIndex, type)}
                             onUpdatePointsValue={(val) => updatePointsValue(blockIndex, effectIndex, val)}
                             onUpdatePointsCardDef={(val) => updatePointsCardDef(blockIndex, effectIndex, val)}
                             onUpdatePointsExpiration={(val) => updatePointsExpiration(blockIndex, effectIndex, val)}
-                            onUpdateIncentiveId={(val) => updateIncentiveId(blockIndex, effectIndex, val)}
+                            onUpdateBenefitId={(val) => updateBenefitId(blockIndex, effectIndex, val)}
                             onUpdatePointsProportional={(val) => updatePointsProportional(blockIndex, effectIndex, val)}
                             onRemove={() => removeEffect(blockIndex, effectIndex)}
                           />

@@ -31,7 +31,7 @@
   let entities = $state({
     cardDefinitions: [],
     earningRules: [],
-    incentives: [],
+    benefits: [],
     rewards: [],
     tierStructures: [],
   });
@@ -147,8 +147,8 @@
     if (entityType !== 'programs') {
       storeCoord.refreshCardRelationships(entities.earningRules, entities.tierStructures);
     }
-    if (entityType === 'incentives') {
-      storeCoord.refreshIncentiveCards(entities.incentives);
+    if (entityType === 'benefits') {
+      storeCoord.refreshBenefitCards(entities.benefits);
     }
   }
 
@@ -381,7 +381,7 @@
 
   // ── Status/delete UI helpers ───────────────────────────────────────────────
   function getAvailableStatusTransitions(entityType, currentStatus) {
-    if (entityType === "incentives") {
+    if (entityType === "benefits") {
       if (currentStatus === "DRAFT") return [{ action: "activate", toStatus: "ACTIVE", label: "Activate", icon: "play" }];
       if (currentStatus === "ACTIVE") return [{ action: "draft", toStatus: "DRAFT", label: "Move to Draft", icon: "document" }];
       return [];
@@ -407,13 +407,13 @@
     return getEntityClasses(
       entityType, entity, storeCoord.selection, removingCard, shakeCard,
       storeCoord.earningRuleCards, storeCoord.tierStructureCards,
-      storeCoord.earningRuleIncentives, storeCoord.incentiveCards, programs
+      storeCoord.earningRuleBenefits, storeCoord.benefitCards, programs
     );
   }
   function programClasses(program) {
     return getProgramClasses(
       program, storeCoord.selection, removingCard, shakeCard,
-      storeCoord.earningRuleIncentives, programs
+      storeCoord.earningRuleBenefits, programs
     );
   }
 
@@ -605,7 +605,7 @@
     ? endpoints[createModal.entityType].create()
     : ""}
   cardDefinitions={entities.cardDefinitions || []}
-  incentives={entities.incentives || []}
+  benefits={entities.benefits || []}
   tierStructures={entities.tierStructures || []}
   onClose={closeCreateModal}
   onCreated={() => {
@@ -629,7 +629,7 @@
   activitiesEndpoint={entityDrawer.activitiesEndpoint}
   prefillData={entityDrawer.prefillData || {}}
   {programs}
-  earningRuleIncentives={storeCoord.earningRuleIncentives}
+  earningRuleBenefits={storeCoord.earningRuleBenefits}
   earningRuleCards={storeCoord.earningRuleCards}
   tierStructureCards={storeCoord.tierStructureCards}
   {entities}

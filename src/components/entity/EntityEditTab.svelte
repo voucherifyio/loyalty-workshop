@@ -4,6 +4,7 @@
   import { buildUpdatePayload } from '../../utils/stateAwarePayload.js';
   import RewardCostsEditor from '../RewardCostsEditor.svelte';
   import EarningRulesEarningsEditor from '../EarningRulesEarningsEditor.svelte';
+  import PointsExpirationEditor from '../PointsExpirationEditor.svelte';
 
   let {
     open = false,
@@ -14,7 +15,7 @@
     entityLabel = '',
     parentStatus = null,
     cardDefinitions = [],
-    incentives = [],
+    benefits = [],
     tierStructures = [],
     onUpdated = () => {},
     onClose = () => {},
@@ -37,6 +38,10 @@
   // State for earnings editor modal
   let earningsEditorOpen = $state(false);
   let earningsBeingEdited = $state(null);
+
+  // State for points expiration editor modal
+  let pointsExpirationEditorOpen = $state(false);
+  let pointsExpirationBeingEdited = $state(null);
 
   // Determine effective state for property filtering
   // For tiers, use parent tier structure status; for others, use entity's own status
@@ -347,6 +352,35 @@
     }
     closeEarningsEditor();
   }
+
+  function openPointsExpirationEditor(fieldName) {
+    pointsExpirationBeingEdited = fieldName;
+    pointsExpirationEditorOpen = true;
+  }
+
+  function closePointsExpirationEditor() {
+    pointsExpirationEditorOpen = false;
+    pointsExpirationBeingEdited = null;
+  }
+
+  function savePointsExpiration(pointsExpiration) {
+    if (pointsExpirationBeingEdited) {
+      formData[pointsExpirationBeingEdited] = pointsExpiration;
+      displayData[pointsExpirationBeingEdited] = JSON.stringify(pointsExpiration, null, 2);
+    }
+    closePointsExpirationEditor();
+  }
+
+  function pointsExpirationSummary(value) {
+    if (!value || !value.type || value.type === 'INHERIT') return 'Inherit (default)';
+    const labels = {
+      NO_EXPIRATION: 'No expiration',
+      ROLLING_EXPIRATION: 'Rolling expiration',
+      CALENDAR_EXPIRATION: 'Calendar expiration',
+      SLIDING_EXPIRATION: 'Sliding expiration',
+    };
+    return labels[value.type] || value.type;
+  }
 </script>
 
 <div class="flex-1 overflow-hidden p-4 flex flex-col gap-4">
@@ -375,6 +409,7 @@
           {@const hasError = fieldErrors[fieldName]}
           {@const isRewardCosts = entityType === 'rewards' && fieldName === 'costs'}
           {@const isEarningRuleEarnings = entityType === 'earningRules' && fieldName === 'earnings'}
+          {@const isTierPointsExpiration = entityType === 'tiers' && fieldName === 'points_expiration'}
           {@const isDateTimeField = fieldConfig?.type === 'datetime'}
           
           <span class="text-base-content/50 pt-2 {!editable ? 'opacity-50' : ''} {hasError ? 'text-error' : ''}">{fieldName}</span>
@@ -486,6 +521,26 @@
                   </svg>
                 </div>
               {/if}
+            {:else if isTierPointsExpiration}
+              <!-- Special editor for tier points expiration -->
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline flex-1 justify-start font-mono text-xs {!editable ? 'btn-disabled' : ''}"
+                  onclick={() => openPointsExpirationEditor(fieldName)}
+                  disabled={submitting || !editable}
+                  title={tooltip || 'Open points expiration editor'}
+                >
+                  {pointsExpirationSummary(formData[fieldName])}
+                </button>
+              </div>
+              {#if !editable}
+                <div class="absolute top-1 right-1 tooltip tooltip-left" data-tip={tooltip}>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-warning">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                </div>
+              {/if}
             {:else}
               <!-- Standard textarea for other fields -->
               <textarea
@@ -569,9 +624,17 @@
   <EarningRulesEarningsEditor
     initialEarnings={formData[earningsBeingEdited] || []}
     availableCardDefinitions={cardDefinitions}
-    availableIncentives={incentives}
+    availableBenefits={benefits}
     availableTierStructures={tierStructures}
     onSave={saveEarnings}
     onCancel={closeEarningsEditor}
+  />
+{/if}
+
+{#if pointsExpirationEditorOpen && pointsExpirationBeingEdited}
+  <PointsExpirationEditor
+    initialPointsExpiration={formData[pointsExpirationBeingEdited] || { type: 'INHERIT' }}
+    onSave={savePointsExpiration}
+    onCancel={closePointsExpirationEditor}
   />
 {/if}

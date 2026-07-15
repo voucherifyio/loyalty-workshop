@@ -10,7 +10,7 @@
 
   let {
     memberId = '',
-    member = null
+    membership = null
   } = $props();
 
   // State
@@ -97,7 +97,7 @@
       <button
         class="btn btn-outline"
         onclick={() => { triggerEventOpen = true; }}
-        disabled={!member}
+        disabled={!membership?.member}
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
@@ -107,7 +107,7 @@
       <button
         class="btn btn-outline"
         onclick={() => { createOrderOpen = true; }}
-        disabled={!member}
+        disabled={!membership?.member}
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
           <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
@@ -117,7 +117,7 @@
       <button
         class="btn btn-outline"
         onclick={() => { updateMetadataOpen = true; }}
-        disabled={!member}
+        disabled={!membership?.member}
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
           <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -157,7 +157,7 @@
 <!-- Member Action Modals -->
 <TriggerCustomEventModal
   open={triggerEventOpen}
-  customerId={member?.customer_id || ''}
+  customerId={membership?.member?.customer_id || ''}
   onClose={() => { triggerEventOpen = false; }}
   onSuccess={() => {
     toast.success('Custom event tracked - rerun examination to see updated results');
@@ -166,7 +166,7 @@
 
 <CreateOrderModal
   open={createOrderOpen}
-  customerId={member?.customer_id || ''}
+  customerId={membership?.member?.customer_id || ''}
   onClose={() => { createOrderOpen = false; }}
   onSuccess={() => {
     toast.success('Order created - rerun examination to see updated results');
@@ -175,8 +175,8 @@
 
 <UpdateCustomerMetadataModal
   open={updateMetadataOpen}
-  customerId={member?.customer_id || ''}
-  currentMetadata={member?.metadata || {}}
+  customerId={membership?.member?.customer_id || ''}
+  currentMetadata={membership?.member?.metadata || {}}
   onClose={() => { updateMetadataOpen = false; }}
   onSuccess={async () => {
     toast.success('Customer metadata updated - refreshing member data');

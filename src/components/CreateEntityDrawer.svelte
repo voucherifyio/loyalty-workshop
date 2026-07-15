@@ -4,6 +4,7 @@
   import { buildCreatePayload } from '../utils/stateAwarePayload.js';
   import RewardCostsEditor from './RewardCostsEditor.svelte';
   import EarningRulesEarningsEditor from './EarningRulesEarningsEditor.svelte';
+  import PointsExpirationEditor from './PointsExpirationEditor.svelte';
 
   let {
     open = false,
@@ -12,7 +13,7 @@
     samplePayload = "",
     createEndpoint = "",
     cardDefinitions = [],
-    incentives = [],
+    benefits = [],
     tierStructures = [],
     onClose = () => {},
     onCreated = () => {},
@@ -34,6 +35,10 @@
   // State for earnings editor modal
   let earningsEditorOpen = $state(false);
   let earningsBeingEdited = $state(null);
+
+  // State for points expiration editor modal
+  let pointsExpirationEditorOpen = $state(false);
+  let pointsExpirationBeingEdited = $state(null);
 
   let editableFields = $derived(
     Object.entries(getEditableProperties(entityType, createState))
@@ -263,6 +268,35 @@
     }
     closeEarningsEditor();
   }
+
+  function openPointsExpirationEditor(fieldName) {
+    pointsExpirationBeingEdited = fieldName;
+    pointsExpirationEditorOpen = true;
+  }
+
+  function closePointsExpirationEditor() {
+    pointsExpirationEditorOpen = false;
+    pointsExpirationBeingEdited = null;
+  }
+
+  function savePointsExpiration(pointsExpiration) {
+    if (pointsExpirationBeingEdited) {
+      formData[pointsExpirationBeingEdited] = pointsExpiration;
+      displayData[pointsExpirationBeingEdited] = JSON.stringify(pointsExpiration, null, 2);
+    }
+    closePointsExpirationEditor();
+  }
+
+  function pointsExpirationSummary(value) {
+    if (!value || !value.type || value.type === 'INHERIT') return 'Inherit (default)';
+    const labels = {
+      NO_EXPIRATION: 'No expiration',
+      ROLLING_EXPIRATION: 'Rolling expiration',
+      CALENDAR_EXPIRATION: 'Calendar expiration',
+      SLIDING_EXPIRATION: 'Sliding expiration',
+    };
+    return labels[value.type] || value.type;
+  }
 </script>
 
 <div 
@@ -287,6 +321,7 @@
           {#each editableFields as [fieldName, fieldConfig] (fieldName)}
             {@const isRewardCosts = entityType === 'rewards' && fieldName === 'costs'}
             {@const isEarningRuleEarnings = entityType === 'earningRules' && fieldName === 'earnings'}
+            {@const isTierPointsExpiration = entityType === 'tiers' && fieldName === 'points_expiration'}
             {@const isDateTimeField = fieldConfig?.type === 'datetime'}
             
             <span class="text-base-content/50 pt-2">{fieldName}</span>
@@ -373,6 +408,18 @@
                   </button>
                 {/if}
               </div>
+            {:else if isTierPointsExpiration}
+              <!-- Special editor for tier points expiration -->
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline flex-1 justify-start font-mono text-xs"
+                  onclick={() => openPointsExpirationEditor(fieldName)}
+                  disabled={submitting}
+                >
+                  {pointsExpirationSummary(formData[fieldName])}
+                </button>
+              </div>
             {:else}
               <!-- Standard textarea for other fields -->
               <textarea
@@ -443,9 +490,17 @@
   <EarningRulesEarningsEditor
     initialEarnings={formData[earningsBeingEdited] || []}
     availableCardDefinitions={cardDefinitions}
-    availableIncentives={incentives}
+    availableBenefits={benefits}
     availableTierStructures={tierStructures}
     onSave={saveEarnings}
     onCancel={closeEarningsEditor}
+  />
+{/if}
+
+{#if pointsExpirationEditorOpen && pointsExpirationBeingEdited}
+  <PointsExpirationEditor
+    initialPointsExpiration={formData[pointsExpirationBeingEdited] || { type: 'INHERIT' }}
+    onSave={savePointsExpiration}
+    onCancel={closePointsExpirationEditor}
   />
 {/if}
