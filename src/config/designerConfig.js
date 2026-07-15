@@ -180,7 +180,7 @@ export const featureChecks = {
       key: 'validityHours',
       label: 'Validity Hours',
       icon: icons.clock,
-      check: (item) => item.validity_hours != null,
+      check: (item) => item.validity_hours?.type != null && item.validity_hours.type !== 'ANY_TIME',
     },
     {
       key: 'cooldown',
@@ -211,6 +211,18 @@ export const featureChecks = {
   ],
 
   rewards: [
+    {
+      key: 'dateRange',
+      label: 'Date Range',
+      icon: icons.calendar,
+      check: (item) => item.start_date != null || item.end_date != null,
+    },
+    {
+      key: 'validityHours',
+      label: 'Validity Hours',
+      icon: icons.clock,
+      check: (item) => item.validity_hours?.type != null && item.validity_hours.type !== 'ANY_TIME',
+    },
     {
       key: 'refundable',
       label: 'Refundable',
@@ -252,6 +264,12 @@ export const featureChecks = {
       label: 'Date Range',
       icon: icons.calendar,
       check: (item) => item.start_date != null || item.end_date != null,
+    },
+    {
+      key: 'validityHours',
+      label: 'Validity Hours',
+      icon: icons.clock,
+      check: (item) => item.validity_hours?.type != null && item.validity_hours.type !== 'ANY_TIME',
     },
     {
       key: 'metadata',

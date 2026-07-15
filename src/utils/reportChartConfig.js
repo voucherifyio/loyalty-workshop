@@ -2,19 +2,47 @@
  * Chart configuration constants for member card reports
  */
 
-export const RANGE_OPTIONS = [
-  { label: '7D',  days: 7 },
-  { label: '30D', days: 30 },
-  { label: '90D', days: 90 },
-  { label: '12M', days: 365 },
-];
-
 export const RESOLUTION_OPTIONS = [
   { value: 'day',     label: 'Daily' },
   { value: 'week',    label: 'Weekly' },
   { value: 'month',   label: 'Monthly' },
   { value: 'quarter', label: 'Quarterly' },
 ];
+
+// Maximum date range limits for each resolution type (in days)
+export const REPORTS_MAX_DATE_RANGE = {
+  day:     90,   // 90 days max for daily resolution
+  week:    84,   // 12 weeks max for weekly resolution (12 * 7 = 84 days)
+  month:   365,  // 12 months max for monthly resolution (~365 days)
+  quarter: 365,  // 4 quarters max for quarterly resolution (~365 days)
+};
+
+// Range options for each resolution type
+export const RANGE_OPTIONS_BY_RESOLUTION = {
+  day: [
+    { label: '7D',  days: 7 },
+    { label: '30D', days: 30 },
+    { label: '90D', days: 90 },
+  ],
+  week: [
+    { label: '4W',  days: 28 },
+    { label: '8W',  days: 56 },
+    { label: '12W', days: 84 },
+  ],
+  month: [
+    { label: '3M',  days: 90 },
+    { label: '6M',  days: 180 },
+    { label: '12M', days: 365 },
+  ],
+  quarter: [
+    { label: '1Q',  days: 90 },
+    { label: '2Q',  days: 180 },
+    { label: '4Q',  days: 365 },
+  ],
+};
+
+// Legacy export for backward compatibility (defaults to daily)
+export const RANGE_OPTIONS = RANGE_OPTIONS_BY_RESOLUTION.day;
 
 // Point flow chart configuration
 export const POS_KEYS = [

@@ -7,6 +7,7 @@
   import CopyId from "../components/CopyId.svelte";
   import FeatureIcons from "../components/FeatureIcons.svelte";
   import ProgramDateRange from "../components/ProgramDateRange.svelte";
+  import ProgramSpendingReports from "../components/reports/ProgramSpendingReports.svelte";
 
   let program = $state(null);
   let members = $state([]);
@@ -26,6 +27,14 @@
   let confirmingDelete = $state(null);
   let deletingMember = $state(null);
   let togglingStatus = $state(null);
+
+  // Tab state
+  let activeTab = $state("spendings");
+
+  const TABS = [
+    { id: "spendings", label: "Spendings" },
+    { id: "members", label: "Members" },
+  ];
 
   const programId = $derived(router.params.programId);
 
@@ -209,9 +218,27 @@
       </div>
     </div>
 
-    <!-- Members List Card -->
-    <div class="bg-base-200/50 rounded-xl p-5">
-      <div class="flex items-center justify-between mb-4">
+    <!-- Main Tabbed Section -->
+    <div class="bg-base-200/50 rounded-xl overflow-hidden">
+      <!-- Tab Navigation -->
+      <div class="tabs tabs-bordered border-b border-base-300 px-4 shrink-0 flex-wrap gap-y-1">
+        {#each TABS as tab (tab.id)}
+          <button
+            class="tab tab-sm {activeTab === tab.id ? 'tab-active' : ''}"
+            onclick={() => (activeTab = tab.id)}
+          >
+            {tab.label}
+          </button>
+        {/each}
+      </div>
+
+      <!-- Tab Content -->
+      <div class="p-5">
+        {#if activeTab === "spendings"}
+          <ProgramSpendingReports programId={programId} />
+        {:else if activeTab === "members"}
+          <!-- Members Content -->
+          <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-bold">Members</h2>
         <div class="flex items-center gap-2">
           <input
@@ -443,6 +470,8 @@
           </div>
         {/if}
       {/if}
+        {/if}
+      </div>
     </div>
   {/if}
 </div>

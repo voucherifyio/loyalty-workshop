@@ -467,6 +467,7 @@
       {deletingEntity}
       {changingStatus}
       {hoveredCard}
+      assignmentActive={storeCoord.assignmentActive}
       getClasses={programClasses}
       {getAvailableStatusTransitions}
       onCreate={openCreateModal}

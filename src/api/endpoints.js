@@ -25,7 +25,11 @@ export const endpoints = {
     rewards: (id) => `/v2/loyalties/programs/${id}/rewards`,
     rewardsBatch: (id) => `/v2/loyalties/programs/${id}/rewards/batch`,
     tierStructures: (id) => `/v2/loyalties/programs/${id}/tier-structures`,
-    tierStructuresBatch: (id) => `/v2/loyalties/programs/${id}/tier-structures/batch`
+    tierStructuresBatch: (id) => `/v2/loyalties/programs/${id}/tier-structures/batch`,
+
+    // Program reports
+    spendingDaily: (id, query = {}) => withQuery(`/v2/loyalties/programs/${id}/reports/spending/daily`, query),
+    spendingSummary: (id, query = {}) => withQuery(`/v2/loyalties/programs/${id}/reports/spending/summary`, query)
   },
 
   // Card Definitions

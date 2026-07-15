@@ -262,3 +262,61 @@ export function computeXTickMod(domainLength) {
   if (domainLength <= 90) return 7;
   return 30;
 }
+
+// ─── Generic gap filling (config-driven) ──────────────────────────────────────
+
+/**
+ * Normalise + gap-fill chart data with a custom zero record
+ * @param {Array} reportData - Raw report data from API
+ * @param {string} startDateStr - Start date (YYYY-MM-DD)
+ * @param {string} endDateStr - End date (YYYY-MM-DD)
+ * @param {string} resolution - Time resolution
+ * @param {Object} zeroRecord - Zero-valued record template
+ * @returns {Array} Gap-filled chart data
+ */
+export function fillChartGapsWith(reportData, startDateStr, endDateStr, resolution, zeroRecord) {
+  const byDate = new Map(
+    reportData.map(d => [rawDate(d.date), { ...d, date: rawDate(d.date) }])
+  );
+  const allDates = generateDateRange(startDateStr, endDateStr, resolution);
+  return allDates.map(date => byDate.get(date) ?? { ...zeroRecord, date });
+}
+
+// ─── Generic stacking (config-driven) ─────────────────────────────────────────
+
+/**
+ * Compute stacked segments for positive-only stacks
+ * @param {Array} chartData - Chart data
+ * @param {Array<string>} keys - Keys to stack
+ * @returns {Array} Segments with { key, date, y0, y1 }
+ */
+export function computeStackSegments(chartData, keys) {
+  const segs = [];
+  for (const d of chartData) {
+    let base = 0;
+    for (const k of keys) {
+      const v = d[k] || 0;
+      if (v > 0) {
+        segs.push({ key: k, date: d.date, y0: base, y1: base + v });
+        base += v;
+      }
+    }
+  }
+  return segs;
+}
+
+/**
+ * Compute Y domain for positive-only stacks
+ * @param {Array} chartData - Chart data
+ * @param {Array<string>} keys - Keys to stack
+ * @returns {Array<number>} [0, maxWithPadding]
+ */
+export function computeStackYDomain(chartData, keys) {
+  if (!chartData.length) return [0, 1];
+  let max = 0;
+  for (const d of chartData) {
+    const sum = keys.reduce((s, k) => s + (d[k] || 0), 0);
+    if (sum > max) max = sum;
+  }
+  return [0, max === 0 ? 1 : max * 1.1];
+}
