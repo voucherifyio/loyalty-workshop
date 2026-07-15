@@ -3,12 +3,12 @@
  * Aligns with qualification detection in designerConfig featureChecks.earningRules.
  */
 
-const EFFECT_ORDER = ['POINTS', 'POINTS_PROPORTIONAL', 'INCENTIVE'];
+const EFFECT_ORDER = ['POINTS', 'POINTS_PROPORTIONAL', 'BENEFIT'];
 
 const EFFECT_LABELS = {
   POINTS: 'Points',
   POINTS_PROPORTIONAL: 'Proportional',
-  INCENTIVE: 'Incentive',
+  BENEFIT: 'Benefit',
 };
 
 /** @param {object | null | undefined} rules */
@@ -42,7 +42,7 @@ function countEffectTypesInBlock(block) {
 }
 
 /**
- * Short label for one block's effects, e.g. "Points×2 · Incentive".
+ * Short label for one block's effects, e.g. "Points×2 · Benefit".
  * @param {object} block
  */
 function formatBlockEffectsShort(block) {

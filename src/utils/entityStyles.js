@@ -4,8 +4,8 @@
 import {
   isProgramRelatedToSelectedEntity,
   isEntityRelatedToSelectedProgram,
-  isEarningRuleRelatedToSelectedIncentive,
-  isIncentiveRelatedToSelectedEarningRule,
+  isEarningRuleRelatedToSelectedBenefit,
+  isBenefitRelatedToSelectedEarningRule,
   isEarningRuleRelatedToSelectedCardDefinition,
   isTierStructureRelatedToSelectedCardDefinition,
   isCardDefinitionRelatedToSelectedEarningRule,
@@ -26,7 +26,7 @@ export function getProgramClasses(
   selection,
   removingCard,
   shakeCard,
-  earningRuleIncentives,
+  earningRuleBenefits,
   programs
 ) {
   let classes = "";
@@ -55,11 +55,11 @@ export function getProgramClasses(
 
   // Entity selected: check if this program is related to the selected entity
   if (selection.type === "entity") {
-    if (selection.category === "incentives") {
-      // Incentives relate to programs via earning rules
-      const relatedRuleIds = Object.keys(earningRuleIncentives).filter(
-        (ruleId) => earningRuleIncentives[ruleId]?.some(
-          (inc) => (inc.incentive_id || inc.id) === selection.id
+    if (selection.category === "benefits") {
+      // Benefits relate to programs via earning rules
+      const relatedRuleIds = Object.keys(earningRuleBenefits).filter(
+        (ruleId) => earningRuleBenefits[ruleId]?.some(
+          (benefit) => (benefit.benefit_id || benefit.id) === selection.id
         )
       );
       if (relatedRuleIds.length === 0) return classes + DIMMED;
@@ -87,8 +87,8 @@ export function getEntityClasses(
   shakeCard,
   earningRuleCards,
   tierStructureCards,
-  earningRuleIncentives,
-  incentiveCards,
+  earningRuleBenefits,
+  benefitCards,
   programs
 ) {
   let classes = "";
@@ -120,9 +120,9 @@ export function getEntityClasses(
 
     // Types that have NO relationship with each other → dim immediately
     const relationships = {
-      cardDefinitions: ["earningRules", "tierStructures", "incentives"],
-      earningRules:    ["incentives", "cardDefinitions"],
-      incentives:      ["earningRules", "cardDefinitions"],
+      cardDefinitions: ["earningRules", "tierStructures", "benefits"],
+      earningRules:    ["benefits", "cardDefinitions"],
+      benefits:      ["earningRules", "cardDefinitions"],
       rewards:         [],
       tierStructures:  ["cardDefinitions"],
     };
@@ -143,16 +143,16 @@ export function getEntityClasses(
           ? classes + HIGHLIGHTED_RELATIONSHIP
           : classes + DIMMED;
       }
-      if (entityType === "incentives") {
-        // Direct: incentive.points.card_definition_id
-        if (incentiveCards[entity.id] === selection.id) return classes + HIGHLIGHTED_RELATIONSHIP;
-        // 2-hop via earning rules: earning rule uses both the card def and this incentive
+      if (entityType === "benefits") {
+        // Direct: benefit.points.card_definition_id
+        if (benefitCards[entity.id] === selection.id) return classes + HIGHLIGHTED_RELATIONSHIP;
+        // 2-hop via earning rules: earning rule uses both the card def and this benefit
         const relatedRuleIds = Object.keys(earningRuleCards).filter(
           (ruleId) => earningRuleCards[ruleId]?.includes(selection.id)
         );
         const indirectMatch = relatedRuleIds.some(
-          (ruleId) => earningRuleIncentives[ruleId]?.some(
-            (inc) => (inc.incentive_id || inc.id) === entity.id
+          (ruleId) => earningRuleBenefits[ruleId]?.some(
+            (benefit) => (benefit.benefit_id || benefit.id) === entity.id
           )
         );
         return indirectMatch ? classes + HIGHLIGHTED_RELATIONSHIP : classes + DIMMED;
@@ -161,8 +161,8 @@ export function getEntityClasses(
 
     // ── Earning Rule selected ────────────────────────────────────────────
     if (sel === "earningRules") {
-      if (entityType === "incentives") {
-        return isIncentiveRelatedToSelectedEarningRule(entity.id, selection, earningRuleIncentives)
+      if (entityType === "benefits") {
+        return isBenefitRelatedToSelectedEarningRule(entity.id, selection, earningRuleBenefits)
           ? classes + HIGHLIGHTED_RELATIONSHIP
           : classes + DIMMED;
       }
@@ -171,29 +171,29 @@ export function getEntityClasses(
         if (isCardDefinitionRelatedToSelectedEarningRule(entity.id, selection, earningRuleCards)) {
           return classes + HIGHLIGHTED_RELATIONSHIP;
         }
-        // Indirect: earning rule → incentive → incentive's card_definition_id
-        const linkedIncentives = earningRuleIncentives[selection.id] || [];
-        const viaIncentive = linkedIncentives.some(
-          (inc) => incentiveCards[inc.incentive_id || inc.id] === entity.id
+        // Indirect: earning rule → benefit → benefit's card_definition_id
+        const linkedBenefits = earningRuleBenefits[selection.id] || [];
+        const viaBenefit = linkedBenefits.some(
+          (benefit) => benefitCards[benefit.benefit_id || benefit.id] === entity.id
         );
-        return viaIncentive ? classes + HIGHLIGHTED_RELATIONSHIP : classes + DIMMED;
+        return viaBenefit ? classes + HIGHLIGHTED_RELATIONSHIP : classes + DIMMED;
       }
     }
 
-    // ── Incentive selected ───────────────────────────────────────────────
-    if (sel === "incentives") {
+    // ── Benefit selected ───────────────────────────────────────────────
+    if (sel === "benefits") {
       if (entityType === "earningRules") {
-        return isEarningRuleRelatedToSelectedIncentive(entity.id, selection, earningRuleIncentives)
+        return isEarningRuleRelatedToSelectedBenefit(entity.id, selection, earningRuleBenefits)
           ? classes + HIGHLIGHTED_RELATIONSHIP
           : classes + DIMMED;
       }
       if (entityType === "cardDefinitions") {
-        // Direct: this card def is the one the incentive awards points to
-        if (incentiveCards[selection.id] === entity.id) return classes + HIGHLIGHTED_RELATIONSHIP;
-        // 2-hop: earning rule links this incentive AND this card def
-        const relatedRuleIds = Object.keys(earningRuleIncentives).filter(
-          (ruleId) => earningRuleIncentives[ruleId]?.some(
-            (inc) => (inc.incentive_id || inc.id) === selection.id
+        // Direct: this card def is the one the benefit awards points to
+        if (benefitCards[selection.id] === entity.id) return classes + HIGHLIGHTED_RELATIONSHIP;
+        // 2-hop: earning rule links this benefit AND this card def
+        const relatedRuleIds = Object.keys(earningRuleBenefits).filter(
+          (ruleId) => earningRuleBenefits[ruleId]?.some(
+            (benefit) => (benefit.benefit_id || benefit.id) === selection.id
           )
         );
         const indirectMatch = relatedRuleIds.some(
@@ -217,11 +217,11 @@ export function getEntityClasses(
 
   // ── Program-to-entity relationships (assignment mode) ───────────────────
   if (selection.type === "program") {
-    if (entityType === "incentives") {
-      // Incentives relate to programs indirectly via earning rules
-      const relatedRuleIds = Object.keys(earningRuleIncentives).filter(
-        (ruleId) => earningRuleIncentives[ruleId]?.some(
-          (inc) => (inc.incentive_id || inc.id) === entity.id
+    if (entityType === "benefits") {
+      // Benefits relate to programs indirectly via earning rules
+      const relatedRuleIds = Object.keys(earningRuleBenefits).filter(
+        (ruleId) => earningRuleBenefits[ruleId]?.some(
+          (benefit) => (benefit.benefit_id || benefit.id) === entity.id
         )
       );
       if (relatedRuleIds.length === 0) return classes + DIMMED;

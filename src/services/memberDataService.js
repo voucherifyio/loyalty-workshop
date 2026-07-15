@@ -5,10 +5,24 @@ import { endpoints } from '../api/endpoints.js';
  * Fetch member details
  * @param {string} programId 
  * @param {string} memberId 
- * @returns {Promise<Object>} Member data
+ * @returns {Promise<Object>} Membership data with member, program, and cards
  */
 export async function fetchMember(programId, memberId) {
-  return await api.get(endpoints.members.get(programId, memberId));
+  return await api.get(
+    endpoints.memberships.get(programId, memberId, { identification_type: 'member_id' })
+  );
+}
+
+/**
+ * Fetch all loyalty memberships for a customer across programs, in a single call.
+ * @param {string} identifier - value to resolve, meaning depends on `identificationType`
+ * @param {'customer_id'|'customer_source_id'|'member_id'} identificationType
+ * @returns {Promise<Object>} `{ object, customer, memberships[] }`
+ */
+export async function fetchCustomerMemberships(identifier, identificationType = 'customer_id') {
+  return await api.get(
+    endpoints.memberships.list(identifier, { identification_type: identificationType })
+  );
 }
 
 /**
@@ -122,15 +136,15 @@ export async function fetchCardTransactions(programId, memberId, cardId) {
 }
 
 /**
- * Fetch and merge member transactions (incentive and tier)
+ * Fetch and merge member transactions (benefit and tier)
  * @param {string} programId 
  * @param {string} memberId 
  * @returns {Promise<Array>} Array of merged transactions with _source field
  */
 export async function fetchMemberTransactions(programId, memberId) {
-  const [incentiveRes, tierRes] = await Promise.all([
+  const [benefitRes, tierRes] = await Promise.all([
     api.get(
-      endpoints.members.incentiveTransactions(programId, memberId, {
+      endpoints.members.benefitTransactions(programId, memberId, {
         limit: 50,
       }),
     ),
@@ -141,9 +155,9 @@ export async function fetchMemberTransactions(programId, memberId) {
     ),
   ]);
 
-  const incentiveTxs = (incentiveRes.data || []).map((t) => ({
+  const benefitTxs = (benefitRes.data || []).map((t) => ({
     ...t,
-    _source: 'Incentive',
+    _source: 'Benefit',
   }));
   
   const tierTxs = (tierRes.data || []).map((t) => ({
@@ -151,7 +165,7 @@ export async function fetchMemberTransactions(programId, memberId) {
     _source: 'Tier',
   }));
 
-  const all = [...incentiveTxs, ...tierTxs];
+  const all = [...benefitTxs, ...tierTxs];
   all.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   
   return all;

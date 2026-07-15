@@ -27,7 +27,7 @@
             id: er.earning_rule.id,
             name: results.earning_rules?.find(r => r.id === er.earning_rule.id)?.name || er.earning_rule.id,
             cards: [],
-            incentives: [],
+            benefits: [],
             totalPoints: 0
           });
         }
@@ -40,20 +40,20 @@
       });
     });
 
-    // Process incentives
-    membership.incentives?.forEach(incEst => {
-      incEst.earning_rules?.forEach(er => {
+    // Process benefits
+    membership.benefits?.forEach(benefitEst => {
+      benefitEst.earning_rules?.forEach(er => {
         if (!earningRuleMap.has(er.earning_rule.id)) {
           earningRuleMap.set(er.earning_rule.id, {
             id: er.earning_rule.id,
             name: results.earning_rules?.find(r => r.id === er.earning_rule.id)?.name || er.earning_rule.id,
             cards: [],
-            incentives: [],
+            benefits: [],
             totalPoints: 0
           });
         }
         const rule = earningRuleMap.get(er.earning_rule.id);
-        rule.incentives.push(incEst.incentive);
+        rule.benefits.push(benefitEst.benefit);
       });
     });
 
@@ -76,11 +76,11 @@
     })) || [];
   });
 
-  const incentivesSummary = $derived(() => {
+  const benefitsSummary = $derived(() => {
     if (!results || !results.memberships?.[0]) return [];
-    return results.memberships[0].incentives?.map(incEst => ({
-      incentive: incEst.incentive,
-      earningRules: incEst.earning_rules?.map(er => 
+    return results.memberships[0].benefits?.map(benefitEst => ({
+      benefit: benefitEst.benefit,
+      earningRules: benefitEst.earning_rules?.map(er => 
         results.earning_rules?.find(r => r.id === er.earning_rule.id)?.name || er.earning_rule.id
       ) || []
     })) || [];
@@ -171,13 +171,13 @@
               </div>
             {/if}
 
-            {#if rule.incentives.length > 0}
+            {#if rule.benefits.length > 0}
               <div class="space-y-2 mt-3">
-                <p class="text-xs font-semibold text-base-content/70 uppercase">Incentives</p>
-                {#each rule.incentives as incentive (incentive.id)}
+                <p class="text-xs font-semibold text-base-content/70 uppercase">Benefits</p>
+                {#each rule.benefits as benefit (benefit.id)}
                   <div class="flex items-center gap-2 bg-base-300 rounded p-2">
-                    <div class="badge badge-sm badge-success">{incentive.type}</div>
-                    <p class="text-sm">{incentive.name || incentive.id}</p>
+                    <div class="badge badge-sm badge-success">{benefit.type}</div>
+                    <p class="text-sm">{benefit.name || benefit.id}</p>
                   </div>
                 {/each}
               </div>
@@ -214,16 +214,16 @@
       </div>
     {/if}
 
-    <!-- Incentives Summary -->
-    {#if incentivesSummary().length > 0}
+    <!-- Benefits Summary -->
+    {#if benefitsSummary().length > 0}
       <div class="bg-base-200 rounded-xl p-4">
-        <h4 class="font-bold mb-3">Incentives Summary</h4>
+        <h4 class="font-bold mb-3">Benefits Summary</h4>
         <div class="space-y-2">
-          {#each incentivesSummary() as item (item.incentive.id)}
+          {#each benefitsSummary() as item (item.benefit.id)}
             <div class="bg-base-300 rounded p-3">
               <div class="flex items-center gap-2 mb-2">
-                <div class="badge badge-sm badge-success">{item.incentive.type}</div>
-                <p class="font-semibold">{item.incentive.name || item.incentive.id}</p>
+                <div class="badge badge-sm badge-success">{item.benefit.type}</div>
+                <p class="font-semibold">{item.benefit.name || item.benefit.id}</p>
               </div>
               <p class="text-xs text-base-content/60">
                 From: {item.earningRules.join(', ')}

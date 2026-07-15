@@ -254,10 +254,11 @@
           {@const widthPct = Math.max(((segMax - segMin) / visualMax) * 100, 8)}
           {@const isOpenEnded = !tier.qualification_rules?.points.max_value}
           {@const segColor = tier.metadata?.color ?? tierFallbackColors[i % tierFallbackColors.length]}
+          {@const hasPointsExpirationOverride = tier.points_expiration?.type && tier.points_expiration.type !== 'INHERIT'}
           <div
             class="relative flex flex-col items-center justify-center text-[8px] font-semibold overflow-hidden group/seg cursor-pointer"
             style="width: {widthPct}%; background-color: {segColor};"
-            title="{tier.name || tier.id}: {segMin} – {isOpenEnded ? '∞' : segMax} pts"
+            title="{tier.name || tier.id}: {segMin} – {isOpenEnded ? '∞' : segMax} pts{hasPointsExpirationOverride ? ` · Points expiration: ${tier.points_expiration.type}` : ''}"
             role="button"
             tabindex="0"
             onclick={(e) => {
@@ -267,6 +268,16 @@
             onkeydown={(e) =>
               e.key === "Enter" && onSelect("tierStructures", tierStructure.id)}
           >
+            {#if hasPointsExpirationOverride}
+              <span
+                class="absolute top-0.5 left-0.5 text-white/90 drop-shadow"
+                title="Points expiration override: {tier.points_expiration.type}"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-2.5 h-2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </span>
+            {/if}
             <span class="truncate px-1 text-white/90 drop-shadow leading-none"
               >{tier.name || tier.id}</span
             >

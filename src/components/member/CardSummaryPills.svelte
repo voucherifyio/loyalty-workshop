@@ -33,7 +33,7 @@
             <p class="text-2xl font-bold text-primary">{formatNum(card?.balance?.points ?? 0)}</p>
             <p class="text-[10px] text-base-content/40">pts</p>
           </div>
-          {#if tp}
+          {#if tp?.id}
             {@const pct = calculateTierProgress(tp.points.current, tp.points.min, tp.points.max)}
             <div class="mt-2 pt-2 border-t border-base-300">
               <p class="text-[9px] text-base-content/50 mb-1">{tp.name}</p>
@@ -44,7 +44,7 @@
           {/if}
           
           <!-- Action Buttons -->
-          <div class="mt-auto pt-3 border-t border-base-300 flex gap-2" class:mt-3={!tp}>
+          <div class="mt-auto pt-3 border-t border-base-300 flex gap-2" class:mt-3={!tp?.id}>
             <button 
               class="btn btn-xs btn-outline flex-1"
               onclick={() => {

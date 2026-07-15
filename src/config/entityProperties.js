@@ -27,7 +27,8 @@ export const ENTITY_PROPERTIES = {
     end_date: {
       label: 'End Date',
       type: 'datetime',
-      states: ['DRAFT'],
+      // Can be edited on live programs too — no need to deactivate first.
+      states: ['DRAFT', 'ACTIVE', 'INACTIVE'],
     },
     metadata: {
       label: 'Metadata',
@@ -146,9 +147,9 @@ export const ENTITY_PROPERTIES = {
     },
   },
 
-  incentives: {
+  benefits: {
     name: {
-      label: 'Incentive Name',
+      label: 'Benefit Name',
       states: ['DRAFT', 'ACTIVE'],
     },
     status: {
@@ -299,6 +300,11 @@ export const ENTITY_PROPERTIES = {
     },
     downgrade: {
       label: 'Downgrade',
+      type: 'json',
+      states: ['DRAFT'],
+    },
+    points_expiration: {
+      label: 'Points Expiration',
       type: 'json',
       states: ['DRAFT'],
     },

@@ -8,6 +8,8 @@
   import FeatureIcons from "../components/FeatureIcons.svelte";
   import ProgramDateRange from "../components/ProgramDateRange.svelte";
   import ProgramSpendingReports from "../components/reports/ProgramSpendingReports.svelte";
+  import ProgramPointsEarningsReports from "../components/reports/ProgramPointsEarningsReports.svelte";
+  import ProgramEarningRulesReports from "../components/reports/ProgramEarningRulesReports.svelte";
 
   let program = $state(null);
   let members = $state([]);
@@ -33,6 +35,8 @@
 
   const TABS = [
     { id: "spendings", label: "Spendings" },
+    { id: "pointsEarnings", label: "Points Earnings" },
+    { id: "earningRules", label: "Earning Rules" },
     { id: "members", label: "Members" },
   ];
 
@@ -236,6 +240,10 @@
       <div class="p-5">
         {#if activeTab === "spendings"}
           <ProgramSpendingReports programId={programId} />
+        {:else if activeTab === "pointsEarnings"}
+          <ProgramPointsEarningsReports programId={programId} />
+        {:else if activeTab === "earningRules"}
+          <ProgramEarningRulesReports programId={programId} />
         {:else if activeTab === "members"}
           <!-- Members Content -->
           <div class="flex items-center justify-between mb-4">

@@ -18,7 +18,7 @@ export function getTierStructureCardDefId(ts) {
 const ID_FIELD_MAP = {
   cardDefinitions: 'card_definition_id',
   earningRules: 'earning_rule_id',
-  incentives: 'incentive_id',
+  benefits: 'benefit_id',
   rewards: 'reward_id',
   tierStructures: 'tier_structure_id',
 };
@@ -43,28 +43,28 @@ export function isProgramRelatedToSelectedEntity(programId, selection, programs)
   );
 }
 
-// Incentive-specific relationship checking
-export function isEarningRuleRelatedToSelectedIncentive(earningRuleId, selection, earningRuleIncentives) {
+// Benefit-specific relationship checking
+export function isEarningRuleRelatedToSelectedBenefit(earningRuleId, selection, earningRuleBenefits) {
   if (
     !selection ||
     selection.type !== 'entity' ||
-    selection.category !== 'incentives'
+    selection.category !== 'benefits'
   )
     return false;
-  return earningRuleIncentives[earningRuleId]?.some(
-    (inc) => (inc.incentive_id || inc.id) === selection.id,
+  return earningRuleBenefits[earningRuleId]?.some(
+    (benefit) => (benefit.benefit_id || benefit.id) === selection.id,
   );
 }
 
-export function isIncentiveRelatedToSelectedEarningRule(incentiveId, selection, earningRuleIncentives) {
+export function isBenefitRelatedToSelectedEarningRule(benefitId, selection, earningRuleBenefits) {
   if (
     !selection ||
     selection.type !== 'entity' ||
     selection.category !== 'earningRules'
   )
     return false;
-  return earningRuleIncentives[selection.id]?.some(
-    (inc) => (inc.incentive_id || inc.id) === incentiveId,
+  return earningRuleBenefits[selection.id]?.some(
+    (benefit) => (benefit.benefit_id || benefit.id) === benefitId,
   );
 }
 

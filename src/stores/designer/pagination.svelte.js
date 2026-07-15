@@ -9,7 +9,7 @@ import { endpoints } from '../../api/endpoints.js';
 import { getEntityEndpoints } from '../../utils/entityCrud.js';
 import { relationshipsStore } from './relationships.svelte.js';
 
-const ENTITY_TYPES = ['programs', 'cardDefinitions', 'earningRules', 'incentives', 'rewards', 'tierStructures'];
+const ENTITY_TYPES = ['programs', 'cardDefinitions', 'earningRules', 'benefits', 'rewards', 'tierStructures'];
 
 function emptyPerType(defaultValue) {
   return Object.fromEntries(ENTITY_TYPES.map((k) => [k, defaultValue]));
@@ -123,12 +123,12 @@ class PaginationStore {
     try {
       const [
         programsRes, cardDefinitionsRes, earningRulesRes,
-        incentivesRes, rewardsRes, tierStructuresRes,
+        benefitsRes, rewardsRes, tierStructuresRes,
       ] = await Promise.all([
         api.get(endpoints.programs.list({ limit: 5 })).catch(() => ({ data: [] })),
         api.get(endpoints.cardDefinitions.list({ limit: 5 })).catch(() => ({ data: [] })),
         api.get(endpoints.earningRules.list({ limit: 5 })).catch(() => ({ data: [] })),
-        api.get(endpoints.incentives.list({ limit: 5 })).catch(() => ({ data: [] })),
+        api.get(endpoints.benefits.list({ limit: 5 })).catch(() => ({ data: [] })),
         api.get(endpoints.rewards.list({ limit: 5 })).catch(() => ({ data: [] })),
         api.get(endpoints.tierStructures.list({ limit: 5 })).catch(() => ({ data: [] })),
       ]);
@@ -140,13 +140,13 @@ class PaginationStore {
       const entities = {
         cardDefinitions: cardDefinitionsRes.data || [],
         earningRules: earningRulesRes.data || [],
-        incentives: incentivesRes.data || [],
+        benefits: benefitsRes.data || [],
         rewards: rewardsRes.data || [],
         tierStructures: tierStructuresRes.data || [],
       };
 
       // Store cursors
-      const allRes = { programs: programsRes, cardDefinitions: cardDefinitionsRes, earningRules: earningRulesRes, incentives: incentivesRes, rewards: rewardsRes, tierStructures: tierStructuresRes };
+      const allRes = { programs: programsRes, cardDefinitions: cardDefinitionsRes, earningRules: earningRulesRes, benefits: benefitsRes, rewards: rewardsRes, tierStructures: tierStructuresRes };
       ENTITY_TYPES.forEach((type) => this.#storeCursor(type, allRes[type]));
 
       this.updateCountdowns();
@@ -183,12 +183,12 @@ class PaginationStore {
 
       const [
         allPrograms, allCardDefinitions, allEarningRules,
-        allIncentives, allRewards, allTierStructures,
+        allBenefits, allRewards, allTierStructures,
       ] = await Promise.all([
         fetchAllPages(endpoints.programs.list),
         fetchAllPages(endpoints.cardDefinitions.list),
         fetchAllPages(endpoints.earningRules.list),
-        fetchAllPages(endpoints.incentives.list),
+        fetchAllPages(endpoints.benefits.list),
         fetchAllPages(endpoints.rewards.list),
         fetchAllPages(endpoints.tierStructures.list),
       ]);
@@ -200,7 +200,7 @@ class PaginationStore {
       const entities = {
         cardDefinitions: allCardDefinitions,
         earningRules: allEarningRules,
-        incentives: allIncentives,
+        benefits: allBenefits,
         rewards: allRewards,
         tierStructures: allTierStructures,
       };

@@ -80,7 +80,7 @@
         const effects = block.effects || [];
         const effectsSummary = effects.map((eff) => {
           if (eff.type === "POINTS") return "Points";
-          if (eff.type === "INCENTIVE") return "Incentive";
+          if (eff.type === "BENEFIT") return "Benefit";
           if (eff.type === "POINTS_PROPORTIONAL") return "Points Proportional";
           return eff.type;
         });

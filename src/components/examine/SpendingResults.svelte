@@ -10,7 +10,7 @@
     groupBy = $bindable('card'), // 'card' | 'reward' | 'availability'
     programId = '',
     memberId = '',
-    member = null, // Full member object with cards
+    membership = null, // Full membership object with member, program, and cards
     onRunAgain = () => {},
     onExport = () => {},
     onPurchaseSuccess = () => {}
@@ -21,13 +21,13 @@
   let selectedCard = $state(null);
   let selectedRewardId = $state(null);
 
-  // Enrich card with balance from member data
+  // Enrich card with balance from membership data
   function enrichCardWithBalance(card) {
-    if (!member?.cards) return card;
+    if (!membership?.cards) return card;
     
-    const memberCard = member.cards.find(c => c.id === card.id);
-    if (memberCard?.balance) {
-      return { ...card, balance: memberCard.balance };
+    const memberCard = membership.cards.find(mc => mc.card.id === card.id);
+    if (memberCard?.card?.balance) {
+      return { ...card, balance: memberCard.card.balance };
     }
     return card;
   }

@@ -21,7 +21,7 @@ Developer tool for the [Voucherify Loyalty V2 API](https://docs.voucherify.io). 
 
 ## Features
 
-**Entity Management:** Programs, Card Definitions, Tier Structures, Earning Rules, Rewards, Incentives  
+**Entity Management:** Programs, Card Definitions, Tier Structures, Earning Rules, Rewards, Benefits  
 **Member Management:** Cards, transactions, points, rewards, tier progress  
 **API Inspector:** Request/response logging with cURL export  
 **Themes:** 32 DaisyUI themes  

@@ -457,26 +457,26 @@ POST /v2/loyalties/programs/{programId}/rewards/{rewardId}
 }
 ```
 
-### Incentives
+### Benefits
 
-Incentives provide automatic point bonuses or rewards.
+Benefits provide automatic point bonuses or rewards.
 
-#### List Incentives
+#### List Benefits
 
 ```http
-GET /v2/loyalties/incentives
+GET /v2/loyalties/benefits
 ```
 
-#### Get Incentive
+#### Get Benefit
 
 ```http
-GET /v2/loyalties/incentives/{incentiveId}
+GET /v2/loyalties/benefits/{benefitId}
 ```
 
-#### Create Incentive
+#### Create Benefit
 
 ```http
-POST /v2/loyalties/incentives
+POST /v2/loyalties/benefits
 ```
 
 **Request Body**:
@@ -495,16 +495,16 @@ POST /v2/loyalties/incentives
 }
 ```
 
-#### Update Incentive
+#### Update Benefit
 
 ```http
-PUT /v2/loyalties/incentives/{incentiveId}
+PUT /v2/loyalties/benefits/{benefitId}
 ```
 
-#### Delete Incentive
+#### Delete Benefit
 
 ```http
-DELETE /v2/loyalties/incentives/{incentiveId}
+DELETE /v2/loyalties/benefits/{benefitId}
 ```
 
 ### Members
@@ -520,7 +520,76 @@ GET /v2/loyalties/members
 #### Get Member
 
 ```http
-GET /v2/loyalties/members/{memberId}
+GET /v2/loyalties/programs/{programId}/memberships/by-member-id/{memberId}
+```
+
+**Response**:
+```json
+{
+  "member": {
+    "id": "lmbr_12472ef129bb8960e7",
+    "customer_id": "cust_O3J07vYvPLx1Yo4ts9pUNDJj",
+    "program_id": "lprg_1247277e5f7bc4600c",
+    "status": "ACTIVE",
+    "metadata": {},
+    "created_at": "2026-04-16T10:18:00.230Z",
+    "updated_at": "2026-04-27T11:55:16.054Z",
+    "object": "member"
+  },
+  "program": {
+    "id": "lprg_1247277e5f7bc4600c",
+    "name": "Let's collect & spend some points",
+    "status": "ACTIVE",
+    "metadata": {
+      "sandbox": true
+    },
+    "object": "program"
+  },
+  "cards": [
+    {
+      "member_role": "OWNER",
+      "created_at": "2026-04-16T10:18:00.259Z",
+      "tier_progress": null,
+      "card": {
+        "id": "lcrd_12472ef12e7b8960ea",
+        "card_definition_id": "lcdef_1246fad06006bfd506",
+        "card_type": "INDIVIDUAL",
+        "code": "CARD-DcHriDb",
+        "lifetime_bucket": {
+          "points": {
+            "total": 3230,
+            "earned": 730,
+            "added": 2500,
+            "subtracted": 60,
+            "expired": 2300,
+            "spent": 700,
+            "refunded": 0,
+            "returned": 0,
+            "locked": 700,
+            "unlocked": 700
+          },
+          "pending_points": {
+            "total": 0,
+            "activated": 0,
+            "canceled": 0
+          }
+        },
+        "balance": {
+          "points": 170,
+          "pending_points": 0
+        },
+        "next_expiration": {
+          "points": 120,
+          "date": "2026-06-09"
+        },
+        "next_activation": null,
+        "object": "card"
+      },
+      "object": "member_card"
+    }
+  ],
+  "object": "membership"
+}
 ```
 
 #### Create Member
@@ -692,10 +761,10 @@ POST /v2/loyalties/members/{memberId}/order-payments
 }
 ```
 
-#### List Incentive Transactions
+#### List Benefit Transactions
 
 ```http
-GET /v2/loyalties/members/{memberId}/incentive-transactions
+GET /v2/loyalties/members/{memberId}/benefits/transactions
 ```
 
 ### Orders

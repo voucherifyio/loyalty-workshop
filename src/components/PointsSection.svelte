@@ -41,7 +41,7 @@
     Object.fromEntries(cardDefinitions.map(cd => [cd.id, cd]))
   );
 
-  function getIncentiveCardDefId(item) {
+  function getBenefitCardDefId(item) {
     if (item.type === 'POINTS') return item.points?.card_definition_id ?? null;
     if (item.type === 'POINTS_PROPORTIONAL') return item.points_proportional?.card_definition_id ?? null;
     return null;
@@ -59,11 +59,11 @@
     digitalGiftCards: entities.rewards.filter(r => r.type === "DIGITAL" && r.digital?.type === "GIFT_VOUCHERS"),
   });
 
-  const incentivesByType = $derived({
-    points: entities.incentives.filter(r => r.type === "POINTS" || r.type === "POINTS_PROPORTIONAL"),
-    material: entities.incentives.filter(r => r.type === "MATERIAL"),
-    digitalCoupons: entities.incentives.filter(r => r.type === "DIGITAL" && r.digital?.type === "DISCOUNT_COUPONS"),
-    digitalGiftCards: entities.incentives.filter(r => r.type === "DIGITAL" && r.digital?.type === "GIFT_VOUCHERS"),
+  const benefitsByType = $derived({
+    points: entities.benefits.filter(r => r.type === "POINTS" || r.type === "POINTS_PROPORTIONAL"),
+    material: entities.benefits.filter(r => r.type === "MATERIAL"),
+    digitalCoupons: entities.benefits.filter(r => r.type === "DIGITAL" && r.digital?.type === "DISCOUNT_COUPONS"),
+    digitalGiftCards: entities.benefits.filter(r => r.type === "DIGITAL" && r.digital?.type === "GIFT_VOUCHERS"),
   });
 
   // Reward stock editor state
@@ -181,18 +181,18 @@
     };
   }
 
-  // Get column props for a specific incentive type
-  function getIncentiveColumnProps(incentiveType) {
+  // Get column props for a specific benefit type
+  function getBenefitColumnProps(benefitType) {
     let prefillData = {};
     
-    if (incentiveType === 'points') {
-      prefillData.name = "Points Incentive";
+    if (benefitType === 'points') {
+      prefillData.name = "Points Benefit";
       prefillData.type = "POINTS";
       prefillData.points = { value: 0, card_definition_id: "" };
       prefillData.material = ""; // Exclude material field
       prefillData.digital = ""; // Exclude digital field
-    } else if (incentiveType === 'material') {
-      prefillData.name = "Material Incentive";
+    } else if (benefitType === 'material') {
+      prefillData.name = "Material Benefit";
       prefillData.type = "MATERIAL";
       prefillData.material = {
         type: "PRODUCT",
@@ -200,8 +200,8 @@
       };
       prefillData.points = ""; // Exclude points field
       prefillData.digital = ""; // Exclude digital field
-    } else if (incentiveType === 'digitalCoupons') {
-      prefillData.name = "Discount Coupon Incentive";
+    } else if (benefitType === 'digitalCoupons') {
+      prefillData.name = "Discount Coupon Benefit";
       prefillData.type = "DIGITAL";
       prefillData.digital = {
         type: "DISCOUNT_COUPONS",
@@ -209,8 +209,8 @@
       };
       prefillData.points = ""; // Exclude points field
       prefillData.material = ""; // Exclude material field
-    } else if (incentiveType === 'digitalGiftCards') {
-      prefillData.name = "Gift Voucher Incentive";
+    } else if (benefitType === 'digitalGiftCards') {
+      prefillData.name = "Gift Voucher Benefit";
       prefillData.type = "DIGITAL";
       prefillData.digital = {
         type: "GIFT_VOUCHERS",
@@ -224,21 +224,21 @@
     }
     
     return {
-      icon: entityIcons.incentives.icon,
+      icon: entityIcons.benefits.icon,
       loading,
-      hasMore: hasMore.incentives,
-      loadingMore: loadingMore.incentives,
-      countdown: cursorCountdown.incentives,
+      hasMore: hasMore.benefits,
+      loadingMore: loadingMore.benefits,
+      countdown: cursorCountdown.benefits,
       getClasses,
-      usage: entityUsage.incentives,
+      usage: entityUsage.benefits,
       shakeCard,
       removingCard,
       onExpand,
-      onCreate: () => onCreate("incentives", prefillData),
-      onSelect: (id) => onSelect("incentives", id),
-      onStatusChange: (id, action, toStatus) => onStatusChange("incentives", id, action, toStatus),
-      onLoadMore: () => onLoadMore("incentives"),
-      onRefresh: () => onRefresh("incentives"),
+      onCreate: () => onCreate("benefits", prefillData),
+      onSelect: (id) => onSelect("benefits", id),
+      onStatusChange: (id, action, toStatus) => onStatusChange("benefits", id, action, toStatus),
+      onLoadMore: () => onLoadMore("benefits"),
+      onRefresh: () => onRefresh("benefits"),
       assignmentMode: false,
       isEntityAssigned,
       onToggleAssign: null,
@@ -287,14 +287,14 @@
                           {cardDefinitionsById[effect.points.card_definition_id]?.name || 'Unknown'}
                         </span>
                       {/if}
-                    {:else if effect.type === 'INCENTIVE' && effect.incentive}
-                      <span class="badge badge-xs badge-secondary">Incentive</span>
-                      {#if effect.incentive.id}
-                        {@const incentive = entities.incentives.find(i => i.id === effect.incentive.id)}
-                        {#if incentive}
+                    {:else if effect.type === 'BENEFIT' && effect.benefit}
+                      <span class="badge badge-xs badge-secondary">Benefit</span>
+                      {#if effect.benefit.id}
+                        {@const benefit = entities.benefits.find(i => i.id === effect.benefit.id)}
+                        {#if benefit}
                           <span class="text-base-content/50">→</span>
-                          <span class="badge badge-xs badge-outline font-mono truncate max-w-[100px]" title={incentive.name}>
-                            {incentive.name || incentive.id}
+                          <span class="badge badge-xs badge-outline font-mono truncate max-w-[100px]" title={benefit.name}>
+                            {benefit.name || benefit.id}
                           </span>
                         {/if}
                       {/if}
@@ -360,10 +360,10 @@
     />
   </div>
 
-  <!-- Divider + Incentives (label matches Earnings / Rewards) -->
+  <!-- Divider + Benefits (label matches Earnings / Rewards) -->
   <div class="divider mt-4 mb-1"></div>
   <div class="flex items-center gap-2">
-    <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">Incentives</p>
+    <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest">Benefits</p>
     {#if assignmentActive}
       <span class="badge badge-xs badge-ghost text-base-content/50">View only</span>
     {/if}
@@ -371,14 +371,14 @@
   <div class="grid grid-cols-4 gap-4">
         <!-- Points -->
         <EntityColumn
-          entityType="incentives"
-          items={incentivesByType.points}
+          entityType="benefits"
+          items={benefitsByType.points}
           name="Points"
-          {...getIncentiveColumnProps('points')}
+          {...getBenefitColumnProps('points')}
         >
           {#snippet extraBadges(item)}
-            {#if getIncentiveCardDefId(item)}
-              {@const cdId = getIncentiveCardDefId(item)}
+            {#if getBenefitCardDefId(item)}
+              {@const cdId = getBenefitCardDefId(item)}
               <span class="font-medium text-base-content/60" title={cdId}>
                 Card: <span class="badge badge-xs badge-ghost font-mono">{cardDefinitionsById[cdId]?.name || cdId}</span>
               </span>
@@ -388,26 +388,26 @@
 
         <!-- Material -->
         <EntityColumn
-          entityType="incentives"
-          items={incentivesByType.material}
+          entityType="benefits"
+          items={benefitsByType.material}
           name="Material"
-          {...getIncentiveColumnProps('material')}
+          {...getBenefitColumnProps('material')}
         />
 
         <!-- Digital Coupons -->
         <EntityColumn
-          entityType="incentives"
-          items={incentivesByType.digitalCoupons}
+          entityType="benefits"
+          items={benefitsByType.digitalCoupons}
           name="Digital Coupons"
-          {...getIncentiveColumnProps('digitalCoupons')}
+          {...getBenefitColumnProps('digitalCoupons')}
         />
 
         <!-- Digital Gift Cards -->
         <EntityColumn
-          entityType="incentives"
-          items={incentivesByType.digitalGiftCards}
+          entityType="benefits"
+          items={benefitsByType.digitalGiftCards}
           name="Digital Gift Cards"
-          {...getIncentiveColumnProps('digitalGiftCards')}
+          {...getBenefitColumnProps('digitalGiftCards')}
         />
   </div>
 </div>

@@ -26,7 +26,7 @@
   const memberId = $derived(router.params.memberId);
 
   // ── Core data ────────────────────────────────────────────────────────────────
-  let member = $state(null);
+  let membership = $state(null);
   let loadingMember = $state(false);
   let selectedCardIndex = $state(null);
   let activeTab = $state("cards");
@@ -47,7 +47,7 @@
   let loadingMemberTx = $state(false);
   let expandedRows = $state({});
   let txSourceFilter = $state(new Set(["Card", "Reward", "Order"]));
-  let memberTxSourceFilter = $state(new Set(["Incentive", "Tier"]));
+  let memberTxSourceFilter = $state(new Set(["Benefit", "Tier"]));
 
   // ── Modal / dialog visibility ─────────────────────────────────────────────────
   let adjustPointsOpen = $state(false);
@@ -69,7 +69,7 @@
   const isMemberMode = $derived(selectedCardIndex === null);
   const selectedMemberCard = $derived(
     selectedCardIndex !== null
-      ? (member?.cards?.[selectedCardIndex] ?? null)
+      ? (membership?.cards?.[selectedCardIndex] ?? null)
       : null,
   );
   const selectedCard = $derived(selectedMemberCard?.card ?? null);
@@ -87,7 +87,7 @@
     { id: "earning", label: "Earning Possibilities" },
     { id: "spending", label: "Spending Possibilities" },
     { id: "activities", label: "Activities" },
-    { id: "incentives", label: "Transactions" },
+    { id: "benefits", label: "Transactions" },
     { id: "json", label: "JSON" },
   ];
 
@@ -98,7 +98,7 @@
   ];
 
   const MEMBER_TX_FILTER_OPTIONS = [
-    { value: 'Incentive', label: 'Incentive', variant: 'success' },
+    { value: 'Benefit', label: 'Benefit', variant: 'success' },
     { value: 'Tier', label: 'Tier', variant: 'secondary' },
   ];
 
@@ -110,8 +110,8 @@
   });
 
   $effect(() => {
-    if (member && selectedCardIndex !== null) {
-      const card = member.cards?.[selectedCardIndex];
+    if (membership && selectedCardIndex !== null) {
+      const card = membership.cards?.[selectedCardIndex];
       if (card?.card?.id) {
         expandedRows = {};
         fetchCardOverview(card.card.id);
@@ -122,17 +122,17 @@
   });
 
   $effect(() => {
-    if (!member) return;
+    if (!membership) return;
 
     if (activeTab === "activities") fetchMemberActivities();
-    else if (activeTab === "incentives") fetchMemberTransactions();
+    else if (activeTab === "benefits") fetchMemberTransactions();
   });
 
   // ── Data fetching ─────────────────────────────────────────────────────────────
   async function fetchMember() {
     loadingMember = true;
     try {
-      member = await memberDataService.fetchMember(programId, memberId);
+      membership = await memberDataService.fetchMember(programId, memberId);
     } catch {
       toast.error('Failed to fetch member');
     } finally {
@@ -212,7 +212,7 @@
 
   // ── Actions ───────────────────────────────────────────────────────────────────
   async function refreshAfterAction() {
-    const cardId = member?.cards?.[selectedCardIndex]?.card?.id;
+    const cardId = membership?.cards?.[selectedCardIndex]?.card?.id;
     await fetchMember();
     if (cardId) await fetchCardOverview(cardId);
   }
@@ -341,7 +341,7 @@
     <div class="flex items-center justify-center py-12">
       <span class="loading loading-spinner loading-lg"></span>
     </div>
-  {:else if !member}
+  {:else if !membership}
     <div class="bg-base-200/50 rounded-xl p-8 text-center">
       <p class="text-base-content/60 mb-4">Member not found</p>
       <button class="btn btn-primary btn-sm" onclick={goBack}>
@@ -351,7 +351,7 @@
   {:else}
     <!-- Member Header Card -->
     <MemberHeader
-      {member}
+      member={membership.member}
       {refreshing}
       onRefresh={refreshAll}
       onBack={goBack}
@@ -359,7 +359,7 @@
 
     <!-- Card Summaries (clickable pills) -->
     <CardSummaryPills
-      cards={member.cards}
+      cards={membership.cards}
       onCardSelect={(i) => {
         selectedCardIndex = i;
       }}
@@ -390,14 +390,14 @@
       <!-- Tab Content -->
       <div class="p-5">
         {#if activeTab === "cards"}
-          {#if member.cards && member.cards.length > 0}
+          {#if membership.cards && membership.cards.length > 0}
             <!-- Card Selector -->
             <div class="mb-6">
               <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest mb-3">
                 Select Card
               </p>
               <div class="flex gap-2 flex-wrap">
-                {#each member.cards as mc, i (mc.card.id)}
+                {#each membership.cards as mc, i (mc.card.id)}
                   {@const card = mc.card}
                   {@const isSelected = i === selectedCardIndex}
                   <button
@@ -419,7 +419,7 @@
                   </p>
                   <OverviewTab
                   isMemberMode={false}
-                  {member}
+                  membership={membership}
                   {programId}
                   {memberId}
                   {selectedCard}
@@ -484,10 +484,10 @@
           {/if}
         {:else if activeTab === "earning"}
           <!-- Earning Possibilities Tab -->
-          <EarningsExaminationTab {programId} {memberId} {member} />
+          <EarningsExaminationTab {programId} {memberId} membership={membership} />
         {:else if activeTab === "spending"}
           <!-- Spending Possibilities Tab -->
-          <SpendingExaminationTab {programId} {memberId} {member} />
+          <SpendingExaminationTab {programId} {memberId} membership={membership} />
         {:else if activeTab === "activities"}
           <ActivitiesTab
             isMemberMode={true}
@@ -498,7 +498,7 @@
             onToggleRow={toggleRow}
             {getActivityTypeColor}
           />
-        {:else if activeTab === "incentives"}
+        {:else if activeTab === "benefits"}
           <TransactionFilterBar
             bind:filters={memberTxSourceFilter}
             options={MEMBER_TX_FILTER_OPTIONS}
@@ -512,7 +512,7 @@
             onOpenRefund={() => {}}
           />
         {:else if activeTab === "json"}
-          <RawJsonTab {member} />
+          <RawJsonTab data={membership} />
         {/if}
       </div>
     </div>
@@ -522,7 +522,7 @@
 <!-- Action modals -->
 <CreateOrderModal
   open={createOrderOpen}
-  customerId={member?.customer_id ?? ""}
+  customerId={membership?.member?.customer_id ?? ""}
   onClose={() => {
     createOrderOpen = false;
   }}
@@ -531,7 +531,7 @@
 
 <TriggerCustomEventModal
   open={triggerEventOpen}
-  customerId={member?.customer_id ?? ""}
+  customerId={membership?.member?.customer_id ?? ""}
   onClose={() => {
     triggerEventOpen = false;
   }}
@@ -552,7 +552,7 @@
 <PayWithPointsModal
   open={payWithPointsOpen}
   card={selectedCard}
-  {member}
+  membership={membership}
   {programId}
   {memberId}
   onClose={() => {

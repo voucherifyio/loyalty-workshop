@@ -5,14 +5,23 @@
   let { tierProgress, memberCard } = $props();
 
   const tp = $derived(tierProgress?.current);
+  // `current.id`/`name` are null when the member hasn't reached any tier yet.
+  const hasTier = $derived(!!tp?.id);
+  // `points.max` is null for an open-ended top tier (no upper bound).
+  const hasUpperBound = $derived(tp?.points?.max != null);
   const tsId = $derived(tierProgress?.tier_structure?.id);
+  const deferred = $derived(tierProgress?.deferred ?? []);
   const opportunities = $derived(tierProgress?.opportunities ?? []);
   const risks = $derived(tierProgress?.risks ?? []);
-  
-  const range = $derived(tp ? Math.max(tp.points.max - tp.points.min, 1) : 1);
-  const pct = $derived(
-    tp ? Math.min(100, Math.round(((tp.points.current - tp.points.min) / range) * 100)) : 0
+
+  const range = $derived(
+    hasTier && hasUpperBound ? Math.max(tp.points.max - tp.points.min, 1) : 1
   );
+  const pct = $derived.by(() => {
+    if (!hasTier) return 0;
+    if (!hasUpperBound) return 100;
+    return Math.min(100, Math.max(0, Math.round(((tp.points.current - tp.points.min) / range) * 100)));
+  });
 
   const tierStart = $derived(
     memberCard?.created_at ? new Date(memberCard.created_at).getTime() : null
@@ -35,7 +44,7 @@
     });
 </script>
 
-{#if tp}
+{#if tierProgress}
   <div>
     <div class="mb-3">
       <SectionHeading>
@@ -83,12 +92,26 @@
                       </div>
                     </div>
                   </div>
+                {:else if risk.type === 'TIER_LEFT'}
+                  <div class="bg-error/10 border border-error/30 rounded p-2">
+                    <div class="flex items-start gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 text-error shrink-0 mt-0.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                      </svg>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-xs font-semibold text-error">Tier Membership at Risk</p>
+                        <p class="text-[9px] text-base-content/60 mt-0.5">
+                          Leaves tier structure {formatDate(risk.date)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 {:else}
                   <div class="bg-warning/10 border border-warning/30 rounded p-2">
                     <p class="text-xs font-semibold text-warning">{risk.type || 'Risk'}</p>
-                    <p class="text-[9px] text-base-content/50">
-                      {risk.description || ''}
-                    </p>
+                    {#if risk.date}
+                      <p class="text-[9px] text-base-content/50">{formatDate(risk.date)}</p>
+                    {/if}
                   </div>
                 {/if}
               {/each}
@@ -104,8 +127,13 @@
         <!-- Center: Progress -->
         <div class="space-y-2">
           <div class="text-center">
-            <p class="text-sm font-bold">{tp.name}</p>
-            <p class="text-[9px] text-base-content/40">Current Tier</p>
+            {#if hasTier}
+              <p class="text-sm font-bold">{tp.name}</p>
+              <p class="text-[9px] text-base-content/40">Current Tier</p>
+            {:else}
+              <p class="text-sm font-bold text-base-content/40">No Tier Yet</p>
+              <p class="text-[9px] text-base-content/40">Not qualified for any tier</p>
+            {/if}
             {#if tsId}
               <p class="text-[9px] font-mono text-base-content/40 mt-0.5">
                 {tsId}
@@ -118,19 +146,30 @@
               style="width: {Math.max(pct, 4)}%"
             >
               {#if pct >= 20}
-                <span class="text-[8px] font-bold text-primary-content">{pct}%</span>
+                <span class="text-[8px] font-bold text-primary-content">
+                  {hasTier && !hasUpperBound ? 'Max' : `${pct}%`}
+                </span>
               {/if}
             </div>
           </div>
           <div class="text-center">
-            <p class="text-xs font-semibold">{pct}%</p>
-            <p class="text-[9px] text-base-content/40">
-              {formatNum(tp.points.current)} / {formatNum(tp.points.max)} pts
-            </p>
-            {#if tp.expires_at}
-              <p class="text-[9px] text-base-content/40 mt-1">
-                Expires: {fmtTierDate(tp.expires_at)}
+            {#if hasTier}
+              <p class="text-xs font-semibold">{!hasUpperBound ? 'Top tier' : `${pct}%`}</p>
+              <p class="text-[9px] text-base-content/40">
+                {#if hasUpperBound}
+                  {formatNum(tp.points.current)} / {formatNum(tp.points.max)} pts
+                {:else}
+                  {formatNum(tp.points.current)} pts &middot; no upper limit
+                {/if}
               </p>
+              {#if tp.expires_at}
+                <p class="text-[9px] text-base-content/40 mt-1">
+                  Expires: {fmtTierDate(tp.expires_at)}
+                </p>
+              {/if}
+            {:else}
+              <p class="text-xs font-semibold">{formatNum(tp?.points?.current)} pts</p>
+              <p class="text-[9px] text-base-content/40">Keep earning to reach a tier</p>
             {/if}
           </div>
         </div>
@@ -152,11 +191,16 @@
               {#each opportunities.slice(0, 3) as opp, index (index)}
                 <div class="bg-base-300/30 rounded p-2">
                   <p class="text-xs font-semibold">{opp.tier_id}</p>
-                  {#if opp.points === 0}
+                  {#if opp.points <= 0}
                     <p class="text-[9px] text-success">Eligible now</p>
                   {:else}
                     <p class="text-[9px] text-base-content/50">
                       +{formatNum(opp.points)} pts needed
+                    </p>
+                  {/if}
+                  {#if opp.valid_until}
+                    <p class="text-[9px] text-base-content/40 mt-0.5">
+                      By {formatDate(opp.valid_until)}
                     </p>
                   {/if}
                 </div>
@@ -169,6 +213,42 @@
             </div>
           {/if}
         </div>
+      </div>
+
+      <!-- Bottom: Deferred / scheduled tier changes -->
+      <div class="mt-3 pt-3 border-t border-base-300">
+        <p class="text-[10px] font-semibold text-base-content/40 uppercase mb-2">
+          Scheduled Changes
+          {#if deferred.length > 0}
+            <span class="badge badge-xs">{deferred.length}</span>
+          {/if}
+        </p>
+        {#if deferred.length === 0}
+          <p class="text-xs text-base-content/40 text-center py-1">No scheduled tier changes</p>
+        {:else}
+          <div class="flex flex-wrap gap-2">
+            {#each deferred as period, index (index)}
+              <div class="bg-info/10 border border-info/30 rounded p-2 flex-1 min-w-[160px]">
+                <div class="flex items-start gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 text-info shrink-0 mt-0.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-info font-mono truncate">{period.id}</p>
+                    <p class="text-[9px] text-base-content/60 mt-0.5">
+                      Starts {formatDate(period.start_at)}
+                    </p>
+                    {#if period.expires_at}
+                      <p class="text-[9px] text-base-content/50">
+                        Ends {formatDate(period.expires_at)}
+                      </p>
+                    {/if}
+                  </div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
       </div>
     </div>
   </div>

@@ -77,11 +77,11 @@ export function createStoreCoordinator(stores, getSelection, getPrograms, getEnt
     get tierStructureCards() {
       return relationshipsStore.tierStructureCards;
     },
-    get earningRuleIncentives() {
-      return relationshipsStore.earningRuleIncentives;
+    get earningRuleBenefits() {
+      return relationshipsStore.earningRuleBenefits;
     },
-    get incentiveCards() {
-      return relationshipsStore.incentiveCards;
+    get benefitCards() {
+      return relationshipsStore.benefitCards;
     },
     refreshUsage: (programs) => {
       relationshipsStore.refreshUsage(programs);
@@ -89,8 +89,8 @@ export function createStoreCoordinator(stores, getSelection, getPrograms, getEnt
     refreshCardRelationships: (earningRules, tierStructures) => {
       relationshipsStore.refreshCardRelationships(earningRules, tierStructures);
     },
-    refreshIncentiveCards: (incentives) => {
-      relationshipsStore.refreshIncentiveCards(incentives);
+    refreshBenefitCards: (benefits) => {
+      relationshipsStore.refreshBenefitCards(benefits);
     },
     removeEarningRule: (id) => {
       relationshipsStore.removeEarningRule(id);
