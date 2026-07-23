@@ -17,6 +17,14 @@ class RelationshipsStore {
     tierStructures: {},
   });
 
+  /**
+   * True when any program's assignments were fetched as first-page-only and
+   * more pages exist. Cleared once loadEverything() re-fetches everything in
+   * full. Combined with paginationStore.hasIncompleteData to drive the
+   * "Load Everything" highlight.
+   */
+  hasIncompleteAssignments = $state(false);
+
   earningRuleBenefits = $state({});
   earningRuleCards = $state({}); // earningRuleId → cardDefinitionId[]
   tierStructureCards = $state({}); // tierStructureId → cardDefinitionId
@@ -200,15 +208,66 @@ class RelationshipsStore {
 
   // ── Program assignment fetcher ─────────────────────────────────────────────
 
-  async fetchProgramAssignments(program) {
+  /**
+   * Fetches every page of a cursor-paginated program-assignment list so
+   * callers always see the full assignment set, not just the first page.
+   * Only used when the caller explicitly wants everything (loadEverything).
+   */
+  async #fetchAllAssignmentPages(listFn) {
+    let allData = [];
+    let cursor = null;
+    do {
+      const res = await api.get(listFn(cursor ? { cursor } : {})).catch(() => ({ data: [], cursor: null }));
+      allData = [...allData, ...(res.data || [])];
+      cursor = res.cursor?.next || null;
+    } while (cursor);
+    return allData;
+  }
+
+  /** Fetches only the first page of a cursor-paginated assignment list. */
+  async #fetchFirstAssignmentPage(listFn) {
+    const res = await api.get(listFn({})).catch(() => ({ data: [], cursor: null }));
+    return { data: res.data || [], hasMore: !!res.cursor?.next };
+  }
+
+  /**
+   * Loads a program's assignment counts/entities. By default only fetches
+   * the first page of each assignment type — full pagination only happens
+   * on demand via `full: true` (the "Load Everything" action), so opening
+   * the designer never silently walks every page for every program.
+   */
+  async fetchProgramAssignments(program, { full = false } = {}) {
     try {
-      const [cardDefs, earningRules, rewards, tierStructs, membersRes] = await Promise.all([
-        api.get(endpoints.programs.cardDefinitions(program.id)).catch(() => ({ data: [] })),
-        api.get(endpoints.programs.earningRules(program.id)).catch(() => ({ data: [] })),
-        api.get(endpoints.programs.rewards(program.id)).catch(() => ({ data: [] })),
-        api.get(endpoints.programs.tierStructures(program.id)).catch(() => ({ data: [] })),
-        api.get(endpoints.members.list(program.id, { limit: 1 })).catch(() => ({ data: [], cursor: null })),
-      ]);
+      const membersPromise = api.get(endpoints.members.list(program.id, { limit: 1 }))
+        .catch(() => ({ data: [], cursor: null }));
+
+      let cardDefs, earningRules, rewards, tierStructs, membersRes;
+
+      if (full) {
+        [cardDefs, earningRules, rewards, tierStructs, membersRes] = await Promise.all([
+          this.#fetchAllAssignmentPages((query) => endpoints.programs.cardDefinitions(program.id, query)),
+          this.#fetchAllAssignmentPages((query) => endpoints.programs.earningRules(program.id, query)),
+          this.#fetchAllAssignmentPages((query) => endpoints.programs.rewards(program.id, query)),
+          this.#fetchAllAssignmentPages((query) => endpoints.programs.tierStructures(program.id, query)),
+          membersPromise,
+        ]);
+      } else {
+        let cardDefsPage, earningRulesPage, rewardsPage, tierStructsPage;
+        [cardDefsPage, earningRulesPage, rewardsPage, tierStructsPage, membersRes] = await Promise.all([
+          this.#fetchFirstAssignmentPage((query) => endpoints.programs.cardDefinitions(program.id, query)),
+          this.#fetchFirstAssignmentPage((query) => endpoints.programs.earningRules(program.id, query)),
+          this.#fetchFirstAssignmentPage((query) => endpoints.programs.rewards(program.id, query)),
+          this.#fetchFirstAssignmentPage((query) => endpoints.programs.tierStructures(program.id, query)),
+          membersPromise,
+        ]);
+        cardDefs = cardDefsPage.data;
+        earningRules = earningRulesPage.data;
+        rewards = rewardsPage.data;
+        tierStructs = tierStructsPage.data;
+        if (cardDefsPage.hasMore || earningRulesPage.hasMore || rewardsPage.hasMore || tierStructsPage.hasMore) {
+          this.hasIncompleteAssignments = true;
+        }
+      }
 
       const membersCount = membersRes.data?.length > 0
         ? (membersRes.cursor ? '1+' : membersRes.data.length)
@@ -217,16 +276,16 @@ class RelationshipsStore {
       return {
         ...program,
         assignments: {
-          cardDefinitions: cardDefs.data?.length || 0,
-          earningRules: earningRules.data?.length || 0,
-          rewards: rewards.data?.length || 0,
-          tierStructures: tierStructs.data?.length || 0,
+          cardDefinitions: cardDefs.length,
+          earningRules: earningRules.length,
+          rewards: rewards.length,
+          tierStructures: tierStructs.length,
         },
         assignedEntities: {
-          cardDefinitions: cardDefs.data || [],
-          earningRules: earningRules.data || [],
-          rewards: rewards.data || [],
-          tierStructures: tierStructs.data || [],
+          cardDefinitions: cardDefs,
+          earningRules: earningRules,
+          rewards: rewards,
+          tierStructures: tierStructs,
         },
         membersCount,
       };

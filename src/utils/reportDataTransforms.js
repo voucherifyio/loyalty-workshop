@@ -92,15 +92,40 @@ export function generateDateRange(startStr, endStr, resolution) {
 // ─── Gap filling ──────────────────────────────────────────────────────────────
 
 /**
+ * Group report rows by date, summing numeric fields across rows that share
+ * the same date. The API returns one row per (date, dimension) pair — e.g.
+ * one row per earning rule per day when no dimension filter is applied — so
+ * without this, a plain date→row Map would silently drop every row but the
+ * last for that date instead of reflecting the totals across all dimensions.
+ * Non-numeric fields (e.g. `object`) are taken from the first row seen.
+ */
+function aggregateRowsByDate(reportData) {
+  const byDate = new Map();
+  for (const row of reportData) {
+    const date = rawDate(row.date);
+    const existing = byDate.get(date);
+    if (!existing) {
+      byDate.set(date, { ...row, date });
+      continue;
+    }
+    for (const [key, value] of Object.entries(row)) {
+      if (key === 'date') continue;
+      if (typeof value === 'number') {
+        existing[key] = (typeof existing[key] === 'number' ? existing[key] : 0) + value;
+      }
+    }
+  }
+  return byDate;
+}
+
+/**
  * Normalise + gap-fill chart data:
- *  1. normalise d.date to a plain ISO string
+ *  1. normalise d.date to a plain ISO string, summing rows that share a date
  *  2. generate every expected bucket for the range
  *  3. insert ZERO_RECORD for any bucket missing from the API response
  */
 export function fillChartGaps(reportData, startDateStr, endDateStr, resolution) {
-  const byDate = new Map(
-    reportData.map(d => [rawDate(d.date), { ...d, date: rawDate(d.date) }])
-  );
+  const byDate = aggregateRowsByDate(reportData);
   const allDates = generateDateRange(startDateStr, endDateStr, resolution);
   return allDates.map(date => byDate.get(date) ?? { ...ZERO_RECORD, date });
 }
@@ -266,7 +291,9 @@ export function computeXTickMod(domainLength) {
 // ─── Generic gap filling (config-driven) ──────────────────────────────────────
 
 /**
- * Normalise + gap-fill chart data with a custom zero record
+ * Normalise + gap-fill chart data with a custom zero record. Rows sharing a
+ * date (e.g. one row per earning rule/card per day when "All" is selected)
+ * are summed together first — see aggregateRowsByDate.
  * @param {Array} reportData - Raw report data from API
  * @param {string} startDateStr - Start date (YYYY-MM-DD)
  * @param {string} endDateStr - End date (YYYY-MM-DD)
@@ -275,9 +302,7 @@ export function computeXTickMod(domainLength) {
  * @returns {Array} Gap-filled chart data
  */
 export function fillChartGapsWith(reportData, startDateStr, endDateStr, resolution, zeroRecord) {
-  const byDate = new Map(
-    reportData.map(d => [rawDate(d.date), { ...d, date: rawDate(d.date) }])
-  );
+  const byDate = aggregateRowsByDate(reportData);
   const allDates = generateDateRange(startDateStr, endDateStr, resolution);
   return allDates.map(date => byDate.get(date) ?? { ...zeroRecord, date });
 }

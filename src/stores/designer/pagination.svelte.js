@@ -25,6 +25,16 @@ class PaginationStore {
   loadingAll = $state(false);
   error = $state(null);
 
+  /**
+   * True when any entity catalog still has a next-page cursor, or any
+   * program's assignments were only partially fetched, i.e. the currently
+   * loaded data is a partial view. Drives the "Load Everything" highlight
+   * so users know more data exists without us eagerly fetching it.
+   */
+  get hasIncompleteData() {
+    return ENTITY_TYPES.some((type) => this.hasMore[type]) || relationshipsStore.hasIncompleteAssignments;
+  }
+
   updateCountdowns() {
     const now = Date.now();
     const next = { ...this.cursorCountdown };
@@ -119,6 +129,7 @@ class PaginationStore {
   async fetchAll() {
     this.loading = true;
     this.error = null;
+    relationshipsStore.hasIncompleteAssignments = false;
 
     try {
       const [
@@ -194,7 +205,7 @@ class PaginationStore {
       ]);
 
       const programsWithAssignments = await Promise.all(
-        allPrograms.map((p) => relationshipsStore.fetchProgramAssignments(p))
+        allPrograms.map((p) => relationshipsStore.fetchProgramAssignments(p, { full: true }))
       );
 
       const entities = {
@@ -211,6 +222,7 @@ class PaginationStore {
         this.cursorExpiry[type] = null;
         this.hasMore[type] = false;
       });
+      relationshipsStore.hasIncompleteAssignments = false;
 
       relationshipsStore.refreshUsage(programsWithAssignments);
       this.updateCountdowns();

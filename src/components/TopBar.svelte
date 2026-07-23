@@ -132,9 +132,10 @@
     <!-- Designer Action Buttons -->
     {#if designerActions}
       <button
-        class="btn btn-sm btn-outline gap-2"
+        class="btn btn-sm gap-2 {designerActions.hasIncompleteData ? 'btn-warning' : 'btn-outline'}"
         onclick={() => designerActions.loadEverything()}
         disabled={designerActions.loading || designerActions.loadingAll}
+        title={designerActions.hasIncompleteData ? "More data is available — not everything is loaded yet" : "All data is loaded"}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -151,6 +152,9 @@
           />
         </svg>
         {designerActions.loadingAll ? "Loading All..." : "Load Everything"}
+        {#if designerActions.hasIncompleteData && !designerActions.loadingAll}
+          <span class="w-2 h-2 rounded-full bg-current opacity-80 animate-pulse"></span>
+        {/if}
       </button>
       <button
         class="btn btn-sm btn-primary gap-2"

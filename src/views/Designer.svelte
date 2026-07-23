@@ -113,6 +113,7 @@
       loadEverything,
       get loading() { return paginationStore.loading; },
       get loadingAll() { return paginationStore.loadingAll; },
+      get hasIncompleteData() { return paginationStore.hasIncompleteData; },
     });
     return () => setDesignerActions(null);
   });

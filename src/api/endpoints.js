@@ -17,14 +17,14 @@ export const endpoints = {
     delete: (id) => `/v2/loyalties/programs/${id}`,
     activities: (id) => `/v2/loyalties/programs/${id}/activities`,
 
-    // Program assignments
-    cardDefinitions: (id) => `/v2/loyalties/programs/${id}/card-definitions`,
+    // Program assignments (cursor-paginated lists, like all other list endpoints)
+    cardDefinitions: (id, query = {}) => withQuery(`/v2/loyalties/programs/${id}/card-definitions`, query),
     cardDefinitionsBatch: (id) => `/v2/loyalties/programs/${id}/card-definitions/batch`,
-    earningRules: (id) => `/v2/loyalties/programs/${id}/earning-rules`,
+    earningRules: (id, query = {}) => withQuery(`/v2/loyalties/programs/${id}/earning-rules`, query),
     earningRulesBatch: (id) => `/v2/loyalties/programs/${id}/earning-rules/batch`,
-    rewards: (id) => `/v2/loyalties/programs/${id}/rewards`,
+    rewards: (id, query = {}) => withQuery(`/v2/loyalties/programs/${id}/rewards`, query),
     rewardsBatch: (id) => `/v2/loyalties/programs/${id}/rewards/batch`,
-    tierStructures: (id) => `/v2/loyalties/programs/${id}/tier-structures`,
+    tierStructures: (id, query = {}) => withQuery(`/v2/loyalties/programs/${id}/tier-structures`, query),
     tierStructuresBatch: (id) => `/v2/loyalties/programs/${id}/tier-structures/batch`,
 
     // Program reports
