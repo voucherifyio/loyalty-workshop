@@ -16,10 +16,6 @@ We take the security of Loyalty Workshop seriously. If you discover a security v
 
 **Please do NOT report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them via email to:
-- **Email**: security@voucherify.io
-- **Subject**: [SECURITY] Loyalty Workshop - Brief description
-
 ### What to Include
 
 Please include the following information in your report:
@@ -84,7 +80,3 @@ Security updates will be released as patch versions (e.g., 1.0.1) and announced 
 - GitHub Security Advisories
 - Release notes in [CHANGELOG.md](CHANGELOG.md)
 - Repository announcements
-
-## Questions?
-
-If you have questions about this security policy, please email security@voucherify.io.
